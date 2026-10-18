@@ -65,3 +65,6 @@ client/.env.local
 # ============================================
 server/src/**/*.js
 !server/src/**/*.ts
+
+# Incluir el código JavaScript fuente del servidor
+!/server/src/**/*.js
