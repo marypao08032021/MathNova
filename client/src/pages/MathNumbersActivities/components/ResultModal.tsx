@@ -1,3 +1,6 @@
+import AudioRetroalimentacion from "../../../components/AudioRetroalimentacion";
+import DetalleErroresDeMision, {type MissionReviewItem} from "../../../components/DetalleErroresDeMision";
+import "../../../styles/activityExperience.css";
 import "./ResultModal.css";
 
 import { useEffect, useRef } from "react";
@@ -29,6 +32,9 @@ type ResultModalProps = {
   retryRoute: string;
   onClose: () => void;
   onRetry?: () => void;
+  reviewItems?: MissionReviewItem[];
+  onCorrect?: (item?:MissionReviewItem)=>void;
+  summary?: {correct:number;total:number;seconds:number;xp:number};
 };
 
 const modalTextByKind: Record<
@@ -93,11 +99,21 @@ export function ResultModal({
   retryRoute,
   onClose,
   onRetry,
+  summary, reviewItems, onCorrect,
 }: ResultModalProps) {
   const navigate = useNavigate();
   const data = resultData[kind];
   const modalText = modalTextByKind[kind];
   const isCompleted = kind === "completed";
+  const precision = summary && summary.total > 0 ? Math.round(summary.correct / summary.total * 100) : 0;
+  const time = summary ? `${Math.floor(summary.seconds / 60).toString().padStart(2,"0")}:${(summary.seconds % 60).toString().padStart(2,"0")}` : "";
+  const stats = summary ? [
+    {label:"Aciertos",value:`${summary.correct}/${summary.total}`,note:"Retos de esta misión",icon:data.stats[0].icon},
+    {label:"Tiempo",value:time,note:"min:seg",icon:data.stats[1].icon},
+    {label:"Precisión",value:`${precision}%`,note:"Este intento",icon:data.stats[2].icon},
+    {label:"XP de la misión",value:String(summary.xp),note:"Mejor recompensa registrada",icon:data.stats[3].icon},
+    {label:"Estado",value:summary.correct === summary.total ? "Completada" : "Por corregir",note:"",icon:data.stats[4]?.icon || data.stats[0].icon},
+  ] : data.stats;
 
   const resultAudioRef =
     useRef<HTMLAudioElement | null>(null);
@@ -118,18 +134,16 @@ export function ResultModal({
     audio.currentTime = 0;
     audio.volume = 1;
 
+    let resultPlaybackActive = true;
     const playPromise = audio.play();
-
     if (playPromise !== undefined) {
       playPromise.catch((error) => {
-        console.warn(
-          "El audio del resultado no pudo iniciarse automáticamente:",
-          error,
-        );
+        if (!resultPlaybackActive || error?.name === "AbortError") return;
+        console.warn("El audio del resultado no pudo iniciarse automáticamente:", error);
       });
     }
-
     return () => {
+      resultPlaybackActive = false;
       audio.pause();
       audio.currentTime = 0;
     };
@@ -251,6 +265,7 @@ export function ResultModal({
             </div>
           </header>
 
+          <AudioRetroalimentacion/>
           <div className="result-modal-content">
             <div className="result-modal-character">
               <img
@@ -280,6 +295,7 @@ export function ResultModal({
             </article>
           </div>
 
+          {!isCompleted && reviewItems && onCorrect && <DetalleErroresDeMision items={reviewItems} onCorrect={onCorrect} onRestart={retry}/>}
           <article className="result-modal-summary">
             <header>
               <FiBarChart2 />
@@ -287,7 +303,7 @@ export function ResultModal({
             </header>
 
             <div className="result-modal-stats">
-              {data.stats.map((stat) => (
+              {stats.map((stat) => (
                 <article
                   className="result-modal-stat"
                   key={`${stat.label}-${stat.value}`}
@@ -323,12 +339,12 @@ export function ResultModal({
 
           <div className="result-modal-progress">
             <div>
-              <span>Progreso del tema</span>
-              <strong>60%</strong>
+              <span>{summary ? "Precisión de este intento" : "Progreso del tema"}</span>
+              <strong>{summary ? `${precision}%` : "60%"}</strong>
             </div>
 
             <div className="result-modal-progress-bar">
-              <span style={{ width: "60%" }} />
+              <span style={{ width: summary ? `${precision}%` : "60%" }} />
             </div>
           </div>
 
@@ -346,10 +362,10 @@ export function ResultModal({
               <button
                 type="button"
                 className="result-modal-action result-modal-action--primary"
-                onClick={retry}
+                onClick={() => onCorrect ? onCorrect(reviewItems?.find(item=>item.correct===false)) : onClose()}
               >
                 <FiRefreshCw />
-                <span>Intentar de nuevo</span>
+                <span>Corregir errores</span>
               </button>
             )}
 

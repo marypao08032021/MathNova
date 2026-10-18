@@ -1,3 +1,4 @@
+const {scopeStudent,scopeGroup}=require('../services/docenteScope');
 import { Router, Request, Response } from "express";
 
 type QueryResult<T> = {
@@ -563,7 +564,7 @@ router.get("/", async (_req: Request, res: Response) => {
       FROM progreso_base pb
       INNER JOIN public.registro r
         ON r.id_usuario = pb.id_usuario
-      WHERE LOWER(COALESCE(r.rol, '')) = 'estudiante'
+      WHERE ${scopeStudent('r')} AND LOWER(COALESCE(r.rol, '')) IN ('estudiante','alumno')
         AND COALESCE(r.estado, true) = true
       ORDER BY pb.fecha_ultimo_intento DESC NULLS LAST;
     `);

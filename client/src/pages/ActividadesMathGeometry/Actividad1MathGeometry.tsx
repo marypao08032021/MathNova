@@ -1,3 +1,13 @@
+import useGeometryEvidence from "../../hooks/useGeometryEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import ContinuacionDeMision from "../../components/ContinuacionDeMision";
+import DetalleErroresDeMision from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useAutoProgreso } from "../../hooks/useAutoProgreso";
 
 import { type CSSProperties, useEffect, useRef, useState } from "react";
@@ -531,6 +541,7 @@ function formatearTiempo(segundos: number) {
 }
 
 function Actividad1MathGeometry() {
+ const mission=useMissionExpansion("mathgeometry-actividad-1");
   const [menuOpen, setMenuOpen] = useState(false);
   const [actividadPausada, setActividadPausada] = useState(false);
   const [textoBienvenida, setTextoBienvenida] = useState("");
@@ -1835,6 +1846,8 @@ function Actividad1MathGeometry() {
   };
 
   const abrirCompletado = (reproducir = true) => {
+ mission.finishNative(); if(!mission.ready || !mission.allCorrect){mission.review();return;}
+
     pausarExplicacion();
     pausarProfeAstro();
     pausarByte();
@@ -1938,20 +1951,16 @@ function Actividad1MathGeometry() {
     Reinicia las respuestas, pero CONSERVA el conteo de errores acumulado.
   */
   const volverAIntentarlo = () => {
-    cerrarSombra();
-    setSelecciones({
-      triangulo: "",
-      cuadrado: "",
-      rectangulo: "",
-    });
-    setEstadoRevision("pendiente");
-  };
+ cerrarSombra(); setEstadoRevision("pendiente"); mission.beginCorrection();
+ };
 
   /*
     Se usa para repetir completamente la actividad después de completarla.
     Aquí sí comienza una partida nueva y los errores regresan a cero.
   */
   const reiniciarActividad = () => {
+    mission.reset();
+    pilot.resetSession();
     cerrarCompletado();
     cerrarSombra();
     setSelecciones({
@@ -1975,6 +1984,7 @@ function Actividad1MathGeometry() {
   };
 
   const comprobarActividad = () => {
+    pilot.recordAll();
     pausarExplicacion();
     pausarProfeAstro();
     pausarByte();
@@ -2047,20 +2057,22 @@ function Actividad1MathGeometry() {
 
   const todoCorrecto = figurasCompletadas === figuras.length;
 
+  const pilot=useGeometryEvidence("mathgeometry-actividad-1",mission,()=>({
+      selecciones,
+      errores,
+    }));
+
   useAutoProgreso({
     completada: modalCompletadoOpen,
     codigo: "mathgeometry-actividad-1",
     mundo: "MathGeometry",
     tema: "Figuras geométricas",
     titulo: "El Constructor de Caminos",
-    aciertos: figurasCompletadas,
-    totalPreguntas: figuras.length,
+    aciertos: figurasCompletadas + mission.correctCount,
+    totalPreguntas: mission.total,
     tiempoSegundos: segundos,
     xpBase: 50,
-    respuestas: {
-      selecciones,
-      errores,
-    },
+    respuestas: pilot.evidence(),
   });
 
   const obtenerClaseLineaProfe = (indice: number) => {
@@ -2130,7 +2142,7 @@ function Actividad1MathGeometry() {
 
   return (
     <main
-      className={`act1geo-page ${actividadPausada ? "act1geo-paused" : ""}`}
+      className={`act1geo-page mn-activity ${actividadPausada ? "act1geo-paused" : ""}`}
     >
       <button
         type="button"
@@ -2210,50 +2222,16 @@ function Actividad1MathGeometry() {
           </button>
         </nav>
 
-        <div className="act1geo-sidebar-progress-area">
-          <article className="act1geo-side-week-card">
-            <div className="act1geo-side-week-head">
-              <strong>Progreso semanal</strong>
-              <span>Nivel 3</span>
-            </div>
-
-            <div className="act1geo-side-progress">
-              <span>★</span>
-
-              <div>
-                <b style={{ width: "60%" }}></b>
-              </div>
-
-              <strong>60%</strong>
-            </div>
-          </article>
-        </div>
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathgeometry-actividad-1"].objective}</strong></div>
       </aside>
 
       <section className="act1geo-content">
         <img src={heroBanner} alt="Banner Actividad 1" className="act1geo-bg" />
 
         <section className="act1geo-main">
-          <div className="act1geo-breadcrumb">
-            <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
-              Mundos
-            </button>
+        <CabeceraCurricular curriculum={activityCurriculum["mathgeometry-actividad-1"]} />
+        
 
-            <span>›</span>
-
-            <button
-              type="button"
-              onClick={() => irARuta("/actividades/geometria")}
-            >
-              Actividades MathGeometry
-            </button>
-
-            <span>›</span>
-
-            <button type="button" className="act1geo-breadcrumb-current">
-              Act 1
-            </button>
-          </div>
 
           <header className="act1geo-topbar">
             <div className="act1geo-title-area">
@@ -2370,7 +2348,8 @@ function Actividad1MathGeometry() {
             <audio ref={audioNovaRef} src={audioBienvenida} preload="auto" />
           </section>
 
-          <section className="act1geo-layout">
+          <EnsayoOtrosMundos activityId="mathgeometry-actividad-1"/>
+<section className="act1geo-layout">
             <article className="act1geo-board">
               {actividadPausada && (
                 <div className="act1geo-activity-pause-overlay">
@@ -2404,9 +2383,9 @@ function Actividad1MathGeometry() {
                             } ${
                               seleccionada && correcta ? "act1geo-correct" : ""
                             }`}
-                            disabled={actividadPausada}
+                            disabled={actividadPausada || (mission.correctOnly && selecciones[figura.id]===figura.correcta)}
                             onClick={() => {
-                              if (actividadPausada) return;
+                              if (actividadPausada || (mission.correctOnly && selecciones[figura.id] === figura.correcta)) return;
                               setEstadoRevision("pendiente");
                               setSelecciones((prev) => ({
                                 ...prev,
@@ -2579,6 +2558,8 @@ function Actividad1MathGeometry() {
               </button>
             </aside>
           </section>
+ 
+
 
           <section className="act1geo-bottom-stats">
             <article>
@@ -2617,7 +2598,9 @@ function Actividad1MathGeometry() {
               </div>
             </article>
           </section>
-        </section>
+        <PilotEvidenceStatus pilot={pilot}/>
+        <ContinuacionDeMision expansion={mission} onComplete={()=>{setModalCompletadoOpen(true);}} onRestart={reiniciarActividad}/>
+</section>
 
         {modalProfeOpen && (
           <div
@@ -2936,6 +2919,8 @@ function Actividad1MathGeometry() {
               </div>
 
               <div className="act1geo-sombra-content">
+ <DetalleErroresDeMision items={[...(figuras.map((f,i)=>({id:f.id,title:`Figura ${i+1}`,answer:selecciones[f.id],correct:selecciones[f.id]===f.correcta,hint:"Cuenta los lados, compara sus longitudes y revisa los ángulos antes de elegir el nombre.",target:".act1geo-layout"}))),...mission.items]} onCorrect={(item)=>{cerrarSombra(); setEstadoRevision("pendiente"); mission.beginCorrection(item);}} onRestart={reiniciarActividad}/>
+
                 <span className="act1geo-sombra-badge">
                   <FiVolume2 /> Mensaje de Sombra
                 </span>
@@ -3090,7 +3075,7 @@ function Actividad1MathGeometry() {
                 <span className="act1geo-complete-spark act1geo-complete-spark-two"></span>
               </div>
 
-              <div className="act1geo-complete-content">
+              <div className="act1geo-complete-content"><AudioRetroalimentacion/>
                 <span className="act1geo-complete-badge">
                   <GiTrophyCup /> Actividad completada
                 </span>
@@ -3132,7 +3117,7 @@ function Actividad1MathGeometry() {
                     <FiCheck />
                     <div>
                       <span>Aciertos</span>
-                      <strong>3/3</strong>
+                      <strong>{mission.total}/{mission.total}</strong>
                     </div>
                   </article>
 

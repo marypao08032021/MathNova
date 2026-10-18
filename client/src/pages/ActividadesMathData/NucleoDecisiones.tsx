@@ -1,10 +1,19 @@
+import useMathDataEvidence from "../../hooks/useMathDataEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import CierreDeMision from "../../components/CierreDeMision";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import RetosDeMision from "../../components/RetosDeMision";
+import DetalleErroresDeMision, {type MissionReviewItem} from "../../components/DetalleErroresDeMision";
+import AvisoActividad from "../../components/AvisoActividad";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getSessionUser } from "../../utils/authSession";
-import {
-  guardarProgresoUsuarioActual,
-} from "../../services/progresoService";
 
 import logo from "../../assets/logo_MathNova.png";
 import "./NucleoDecisiones.css";
@@ -541,18 +550,16 @@ function ResultAudioPlayer({ src }: { src?: string }) {
     audio.currentTime = 0;
     audio.volume = 1;
 
+    let resultPlaybackActive = true;
     const playPromise = audio.play();
-
     if (playPromise !== undefined) {
       playPromise.catch((error) => {
-        console.warn(
-          "El audio del resultado no pudo iniciarse automáticamente:",
-          error,
-        );
+        if (!resultPlaybackActive || error?.name === "AbortError") return;
+        console.warn("El audio del resultado no pudo iniciarse automáticamente:", error);
       });
     }
-
     return () => {
+      resultPlaybackActive = false;
       audio.pause();
       audio.currentTime = 0;
     };
@@ -637,6 +644,8 @@ function ResultAudioPlayer({ src }: { src?: string }) {
 ========================================================= */
 
 export default function NucleoDecisiones() {
+ const mission=useMissionExpansion("mathdata-nucleo-decisiones");
+  const [avisoActividad, setAvisoActividad] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const ID_ESTUDIANTE =
@@ -811,6 +820,7 @@ export default function NucleoDecisiones() {
   // ==========================================
 
   const verificarOrden = async () => {
+    pilot.recordAll();
     if (
       ordenResuelto ||
       cargandoOrden
@@ -819,7 +829,7 @@ export default function NucleoDecisiones() {
     }
 
     if (!ID_ESTUDIANTE) {
-      alert(
+      setAvisoActividad(
         "No se encontró tu sesión. Inicia sesión nuevamente.",
       );
       return;
@@ -888,8 +898,9 @@ export default function NucleoDecisiones() {
     setValor: (v: string) => void,
     setCargando: (v: boolean) => void
   ) => {
+    pilot.recordAll();
     if (!ID_ESTUDIANTE) {
-      alert(
+      setAvisoActividad(
         "No se encontró tu sesión. Inicia sesión nuevamente.",
       );
       return;
@@ -961,194 +972,22 @@ export default function NucleoDecisiones() {
     verificarCampo("validar-rango", rango, "rango", setRangoEstado, setRangoAsistida, setRango, setCargandoRango);
 
   /* ---- Envío final de la decisión ---- */
+  const pilot=useMathDataEvidence("mathdata-nucleo-decisiones",mission,()=>({orden_tiempos:orden.map(id=>VALOR_POR_ID[id]),media,mediana,moda,rango,capacidad_total:capacidadTotal,respuestas_asistidas:{media:mediaAsistida,mediana:medianaAsistida,moda:modaAsistida,rango:rangoAsistida}}));
+  useEffect(()=>{const attempt=pilot.receipt?.intento_piloto;if(!attempt)return;
+    setResultado(attempt.evaluacion.completada?"exito":"fallo");
+  },[pilot.receipt]);
+
   const handleEnviarDecision = async () => {
-    if (
-      cargandoEnvio ||
-      guardandoProgresoRef.current
-    ) {
-      return;
-    }
-
-    if (!ID_ESTUDIANTE) {
-      alert(
-        "No se encontró tu sesión. Inicia sesión nuevamente.",
-      );
-      return;
-    }
-
+    if(pilot.busy)return;
     setCargandoEnvio(true);
-    guardandoProgresoRef.current =
-      true;
-
-    const tiempoFinal =
-      Math.max(
-        segundosTranscurridos,
-        Math.floor(
-          (
-            Date.now() -
-            tiempoInicioRef.current
-          ) / 1000,
-        ),
-        1,
-      );
-
-    try {
-      const response = await fetch(
-        `${API_URL}/nucleo/enviar-decision`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            id_estudiante:
-              ID_ESTUDIANTE,
-            tiempo_total:
-              tiempoFinal,
-          }),
-        },
-      );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.mensaje ||
-            data?.message ||
-            `HTTP ${response.status}`,
-        );
-      }
-
-      if (data.success && data.data) {
-        const correcto =
-          Boolean(
-            data.data.correcto,
-          );
-
-        const aciertosCalculados =
-          [
-            ordenResuelto,
-            mediaValida,
-            medianaValida,
-            modaValida,
-            rangoValido,
-          ].filter(Boolean).length;
-
-        const aciertosUnificados =
-          correcto
-            ? 5
-            : aciertosCalculados;
-
-        try {
-          const progresoUnificado =
-            await guardarProgresoUsuarioActual({
-              mundo: "MathData",
-              tema:
-                "Medidas de tendencia central y dispersión",
-              actividad_codigo:
-                "mathdata-nucleo-decisiones",
-              actividad_titulo:
-                "El Núcleo de Decisiones",
-              respuestas: {
-                orden_tiempos:
-                  orden.map(
-                    (id) =>
-                      VALOR_POR_ID[id],
-                  ),
-                media:
-                  Number(media),
-                mediana:
-                  Number(mediana),
-                moda:
-                  Number(moda),
-                rango:
-                  Number(rango),
-                capacidad_total:
-                  capacidadTotal,
-                respuestas_asistidas: {
-                  media:
-                    mediaAsistida,
-                  mediana:
-                    medianaAsistida,
-                  moda:
-                    modaAsistida,
-                  rango:
-                    rangoAsistida,
-                },
-              },
-              aciertos:
-                aciertosUnificados,
-              total_preguntas: 5,
-              tiempo_segundos:
-                tiempoFinal,
-              xp_base: 60,
-              completada:
-                correcto,
-            });
-
-          console.log(
-            "Progreso del Núcleo de Decisiones guardado:",
-            progresoUnificado.progreso,
-          );
-        } catch (
-          progresoError
-        ) {
-          console.error(
-            "La actividad se validó, pero no se pudo registrar en el progreso unificado:",
-            progresoError,
-          );
-        }
-
-        // Avisamos al panel (ActividadesMathData) que esta actividad (índice 5)
-        // ya se completó, para que desbloquee la 7 aunque se navegue directo
-        // con el botón "Siguiente actividad" y nunca se pase por el panel.
-        if (correcto) {
-          try {
-            const idParaDesbloqueo = ID_ESTUDIANTE || "invitado";
-            localStorage.setItem(
-              `mathdata_desbloqueo_${idParaDesbloqueo}_5`,
-              "1",
-            );
-          } catch (error) {
-            console.error(
-              "No se pudo guardar el desbloqueo de la actividad 7:",
-              error,
-            );
-          }
-        }
-
-        setSegundosTranscurridos(
-          tiempoFinal,
-        );
-
-        setResultado(
-          correcto
-            ? "exito"
-            : "fallo",
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Error al enviar la decisión:",
-        error,
-      );
-
-      const mensaje =
-        error instanceof Error
-          ? error.message
-          : "Error al conectar con el servidor.";
-
-      alert(`❌ ${mensaje}`);
-    } finally {
-      setCargandoEnvio(false);
-      guardandoProgresoRef.current =
-        false;
-    }
+    try {await pilot.finish(Math.max(1,Math.floor((Date.now()-tiempoInicioRef.current)/1000)),60);}
+    catch(error){setAvisoActividad(error instanceof Error?error.message:"No se pudo guardar; conserva esta pestaña.");}
+    finally{setCargandoEnvio(false);}
   };
 
   const handleReiniciarActividad = async () => {
+ mission.reset();
+ pilot.resetSession();
     if (ID_ESTUDIANTE) {
       try {
         await fetch(`${API_URL}/nucleo/reiniciar`, {
@@ -1191,16 +1030,19 @@ export default function NucleoDecisiones() {
   };
 
   /* ---- Resumen para las pantallas de resultado ---- */
-  const aciertos = [ordenResuelto, mediaValida, medianaValida, modaValida, rangoValido].filter(Boolean).length;
-  const totalPasos = 5;
+  const aciertos = pilot.evaluation?.aciertos ?? ([ordenResuelto, mediaValida, medianaValida, modaValida, rangoValido].filter(Boolean).length + mission.correctCount);
+  const totalPasos = mission.total;
   const precision = Math.round((aciertos / totalPasos) * 100);
-  const puntosGanados = resultado === "exito" ? 50 : 10;
+  const puntosGanados = pilot.receipt?.intento_piloto?.xp_obtenido ?? (resultado === "exito" ? 50 : 10);
 
   // ==========================================
   // PANTALLA DE CARGA INICIAL (evita mostrar el
   // tablero antes de saber si ya estaba completada)
   // ==========================================
 
+
+ const missionNativeItems:MissionReviewItem[]=[{id:"orden",title:"Orden de lecturas",answer:String(JSON.stringify(orden)),correct:ordenResuelto,hint:"Ordena las lecturas de menor a mayor.",target:'[data-review-target="native-orden"]'},{id:"media",title:"Media",answer:String(media),correct:mediaValida,hint:"Suma las seis lecturas y divide entre seis: 51.",target:'[data-review-target="native-media"]'},{id:"mediana",title:"Mediana",answer:String(mediana),correct:medianaValida,hint:"Con seis datos, promedia el tercero y el cuarto: (48+52)/2 = 50.",target:'[data-review-target="native-mediana"]'},{id:"moda",title:"Moda",answer:String(moda),correct:modaValida,hint:"La lectura más repetida es 44.",target:'[data-review-target="native-moda"]'},{id:"rango",title:"Rango",answer:String(rango),correct:rangoValido,hint:"Resta mínimo a máximo: 60−44 = 16.",target:'[data-review-target="native-rango"]'}];
+ const resumeMission=(item?:MissionReviewItem)=>{setResultado(null);mission.beginCorrection(item);};
   if (cargandoInicial) {
     return (
       <div className="nuc-loading-screen">
@@ -1275,7 +1117,7 @@ export default function NucleoDecisiones() {
             </div>
           </header>
 
-          <div className="nuc-modal-content">
+          <div className="nuc-modal-content"><AudioRetroalimentacion/>
             <div className="nuc-modal-character">
               <img
                 src={villanoTrofeoCompleto}
@@ -1351,8 +1193,8 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
                 </div>
                 <div>
                   <span>Recompensa</span>
-                  <strong>+{puntosGanados} pts</strong>
-                  <small>Puntos ganados</small>
+                  <strong>{puntosGanados} XP</strong>
+                  <small>XP del intento</small>
                 </div>
               </article>
 
@@ -1470,7 +1312,7 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
         <div className="nuc-modal-decoration nuc-modal-decoration--one" />
         <div className="nuc-modal-decoration nuc-modal-decoration--two" />
 
-        <div className="nuc-modal-main" style={{ minWidth: 0, overflowX: "hidden" }}>
+        <div className="nuc-modal-main" style={{ minWidth: 0, overflowX: "hidden" }}><DetalleErroresDeMision items={pilot.reviewItems([...missionNativeItems,...mission.items])} onCorrect={resumeMission} onRestart={handleReiniciarActividad}/>
           <header className="nuc-modal-header">
             <div className="nuc-modal-status-icon">
               <FiRefreshCw />
@@ -1491,7 +1333,7 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
             </div>
           </header>
 
-          <div className="nuc-modal-content">
+          <div className="nuc-modal-content"><AudioRetroalimentacion/>
             <div className="nuc-modal-character">
               <img
                 src={villanoIntentar}
@@ -1569,8 +1411,8 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
                 </div>
                 <div>
                   <span>Recompensa</span>
-                  <strong>+{puntosGanados} pts</strong>
-                  <small>Puntos ganados</small>
+                  <strong>{puntosGanados} XP</strong>
+                  <small>XP del intento</small>
                 </div>
               </article>
 
@@ -1615,10 +1457,10 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
             <button
               type="button"
               className="nuc-modal-action nuc-modal-action--primary"
-              onClick={handleReiniciarActividad}
+              onClick={()=>resumeMission(missionNativeItems.find(item=>item.correct===false))}
             >
               <FiRefreshCw />
-              <span>Intentar de nuevo</span>
+              <span>Corregir errores</span>
             </button>
 
             <button
@@ -1650,7 +1492,8 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
   // ==========================================
 
   return (
-    <div className="nuc-page">
+    <div className="nuc-page mn-activity">
+      {avisoActividad && <AvisoActividad message={avisoActividad} onClose={() => setAvisoActividad(null)} />}
       {/* ================= SIDEBAR ================= */}
       <aside className="nuc-sidebar">
         <img src={logo} alt="MathNova" className="nuc-logo-img" />
@@ -1694,8 +1537,8 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
         </div>
 
         <div className="nuc-xp-card">
-          <small>XP acumulados</small>
-          <strong>180 XP ⭐</strong>
+          <small>XP del último intento</small>
+          <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? "—"} XP ⭐</strong>
         </div>
 
         <div className="nuc-sidebar-actions">
@@ -1713,9 +1556,7 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
       {/* ================= CONTENIDO ================= */}
       <main className="nuc-main" style={{ backgroundImage: `url(${fondoNucleoImg})` }}>
         <header className="nuc-header">
-          <button className="nuc-volver" type="button" onClick={() => navigate("/actividades-math-data")}>
-            <FiArrowLeft /> Volver al tema
-          </button>
+          
           <button
             type="button"
             className="nuc-ayuda-btn"
@@ -1725,6 +1566,9 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
             <FiHelpCircle />
           </button>
         </header>
+        <CabeceraCurricular curriculum={activityCurriculum["mathdata-nucleo-decisiones"]} />
+        <EnsayoOtrosMundos activityId="mathdata-nucleo-decisiones"/>
+
 
         {/* FILA SUPERIOR: TÍTULO + OBJETIVO + VILLANO */}
         <div className="nuc-layout">
@@ -1798,7 +1642,7 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
                               ? "nuc-orden-chip-incorrecto"
                               : ""
                       }`}
-                      onClick={() => seleccionarPosicion(index)}
+                      data-review-target="native-orden" onClick={() => seleccionarPosicion(index)}
                       disabled={posicionesCorrectas[index] || cargandoEnvio}
                       aria-pressed={indiceSeleccionado === index}
                       aria-label={`Tiempo ${VALOR_POR_ID[id]} minutos${
@@ -1850,7 +1694,7 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
                     type="text"
                     inputMode="numeric"
                     className={`nuc-input nuc-input-${mediaAsistida ? "asistido" : mediaEstado}`}
-                    value={media}
+                    data-review-target="native-media" value={media}
                     disabled={
                       !pasosDesbloqueados ||
                       cargandoMedia ||
@@ -1889,7 +1733,7 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
                     type="text"
                     inputMode="numeric"
                     className={`nuc-input nuc-input-${medianaAsistida ? "asistido" : medianaEstado}`}
-                    value={mediana}
+                    data-review-target="native-mediana" value={mediana}
                     disabled={
                       !pasosDesbloqueados ||
                       cargandoMediana ||
@@ -1928,7 +1772,7 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
                     type="text"
                     inputMode="numeric"
                     className={`nuc-input nuc-input-${modaAsistida ? "asistido" : modaEstado}`}
-                    value={moda}
+                    data-review-target="native-moda" value={moda}
                     disabled={
                       !pasosDesbloqueados ||
                       cargandoModa ||
@@ -1965,7 +1809,7 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
                     type="text"
                     inputMode="numeric"
                     className={`nuc-input nuc-input-${rangoAsistida ? "asistido" : rangoEstado}`}
-                    value={rango}
+                    data-review-target="native-rango" value={rango}
                     disabled={
                       !pasosDesbloqueados ||
                       cargandoRango ||
@@ -2078,26 +1922,12 @@ Decisión autorizada agente estimamos una misión de 51 minutos y cargamos 16 mi
                 </div>
               </div>
 
-              <button
-                type="button"
-                className="nuc-enviar-btn"
-                onClick={handleEnviarDecision}
-                disabled={
-                  !ordenResuelto ||
-                  !mediaValida ||
-                  !medianaValida ||
-                  !modaValida ||
-                  !rangoValido ||
-                  cargandoEnvio
-                }
-                aria-busy={cargandoEnvio}
-              >
-                <FiSend /> {cargandoEnvio ? "Enviando..." : "Enviar decisión"}
-              </button>
+              <p className="mn-finish-direction">Cuando completes los retos, usa «Terminar misión» al final de la actividad.</p>
             </div>
           </div>
         </div>
-      </main>
+      <PilotEvidenceStatus pilot={pilot}/>
+<RetosDeMision expansion={mission}/><CierreDeMision onFinish={()=>void handleEnviarDecision()} busy={pilot.busy}/></main>
 
       {mostrarIntroBait && (
         <PistaBaitModal

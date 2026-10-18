@@ -20,35 +20,38 @@ function RegisterForm({ onBack }: RegisterFormProps) {
   const [confirmarPassword, setConfirmarPassword] = useState("");
   const [aceptoTerminos, setAceptoTerminos] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const handleRegister = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setMessage("");setSuccess(false);
 
     const nombreLimpio = nombreCompleto.trim();
     const correoLimpio = correo.trim().toLowerCase();
 
     if (!nombreLimpio || !correoLimpio || !password || !confirmarPassword) {
-      alert("Completa todos los campos.");
+      setMessage("Completa todos los campos.");
       return;
     }
 
     if (!correoLimpio.includes("@")) {
-      alert("Ingresa un correo electrónico válido.");
+      setMessage("Ingresa un correo electrónico válido.");
       return;
     }
 
     if (password.length < 6) {
-      alert("La contraseña debe tener mínimo 6 caracteres.");
+      setMessage("La contraseña debe tener mínimo 6 caracteres.");
       return;
     }
 
     if (password !== confirmarPassword) {
-      alert("Las contraseñas no coinciden.");
+      setMessage("Las contraseñas no coinciden.");
       return;
     }
 
     if (!aceptoTerminos) {
-      alert("Debes aceptar los términos y condiciones.");
+      setMessage("Debes aceptar los términos y condiciones.");
       return;
     }
 
@@ -63,7 +66,7 @@ function RegisterForm({ onBack }: RegisterFormProps) {
         acepto_terminos: aceptoTerminos,
       });
 
-      alert(data.mensaje || "Cuenta creada correctamente.");
+      setMessage(data.mensaje || "Cuenta creada correctamente.");
 
       setNombreCompleto("");
       setCorreo("");
@@ -73,13 +76,13 @@ function RegisterForm({ onBack }: RegisterFormProps) {
 
       console.log("Usuario registrado:", data.usuario);
 
-      onBack();
+      setSuccess(true);
     } catch (error) {
       if (error instanceof Error) {
-        alert(error.message);
+        setMessage(error.message);
         console.error("Error al registrar:", error.message);
       } else {
-        alert("No se pudo registrar el usuario.");
+        setMessage("No se pudo registrar el usuario.");
         console.error("Error desconocido:", error);
       }
     } finally {
@@ -89,7 +92,8 @@ function RegisterForm({ onBack }: RegisterFormProps) {
 
   return (
     <form className="login-form register-form" onSubmit={handleRegister}>
-      <h1>¡Crea tu cuenta!</h1>
+      <h1 id="mn-register-title">¡Crea tu cuenta!</h1>
+      {message && <p role={success?"status":"alert"} className={success?"mn-register-success":"mn-register-error"}>{message}</p>}
 
       <p className="login-subtitle register-subtitle">
         Regístrate para comenzar tu aventura de aprendizaje en MathNova.
@@ -99,7 +103,7 @@ function RegisterForm({ onBack }: RegisterFormProps) {
         <LuUser className="input-icon" />
         <input
           type="text"
-          placeholder="Nombre completo"
+          placeholder="Nombre completo" autoFocus required maxLength={120} aria-label="Nombre completo"
           value={nombreCompleto}
           onChange={(e) => setNombreCompleto(e.target.value)}
         />
@@ -109,7 +113,7 @@ function RegisterForm({ onBack }: RegisterFormProps) {
         <MdOutlineEmail className="input-icon" />
         <input
           type="email"
-          placeholder="Correo electrónico"
+          placeholder="Correo electrónico" required maxLength={120} aria-label="Correo electrónico"
           value={correo}
           onChange={(e) => setCorreo(e.target.value)}
         />
@@ -120,7 +124,7 @@ function RegisterForm({ onBack }: RegisterFormProps) {
 
         <input
           type={showPassword ? "text" : "password"}
-          placeholder="Contraseña"
+          placeholder="Contraseña" required minLength={6} autoComplete="new-password" aria-label="Contraseña de registro"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
@@ -143,7 +147,7 @@ function RegisterForm({ onBack }: RegisterFormProps) {
 
         <input
           type={showConfirmPassword ? "text" : "password"}
-          placeholder="Confirmar contraseña"
+          placeholder="Confirmar contraseña" required minLength={6} autoComplete="new-password" aria-label="Confirmar contraseña"
           value={confirmarPassword}
           onChange={(e) => setConfirmarPassword(e.target.value)}
         />
@@ -172,7 +176,7 @@ function RegisterForm({ onBack }: RegisterFormProps) {
         <span>Acepto los términos y condiciones</span>
       </label>
 
-      <button type="submit" className="login-btn" disabled={loading}>
+      <button type="submit" className="login-btn" disabled={loading || success}>
         {loading ? "Creando cuenta..." : "Crear cuenta"}
       </button>
 

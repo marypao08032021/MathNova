@@ -1,3 +1,12 @@
+import useMathNumbersEvidence from "../../../hooks/useMathNumbersEvidence";
+import PilotEvidenceStatus from "../../../components/PilotEvidenceStatus";
+import CierreDeMision from "../../../components/CierreDeMision";
+import useMissionExpansion from "../../../hooks/useMissionExpansion";
+import EnsayoDeMision from "../../../components/EnsayoDeMision";
+import RetosDeMision from "../../../components/RetosDeMision";
+import CabeceraCurricular from "../../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../../curriculum/activityCurriculum";
+import "../../../styles/activityExperience.css";
 import "./AscensorBunker.css";
 import audioIntroSumaAscensor from "../../../assets/mathnumbers/03-ascensor-bunker/intro_suma_ascensor.mp3";
 import audioConsejoSumaAscensor from "../../../assets/mathnumbers/03-ascensor-bunker/consejo_suma_ascensor.mp3";
@@ -709,6 +718,7 @@ function FloatingByteAscensor() {
 }
 
 export function AscensorBunker() {
+  const mission = useMissionExpansion("mathnumbers-ascensor-bunker");
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
 
@@ -789,6 +799,7 @@ export function AscensorBunker() {
     value: number,
   ) => {
     setSlots((current) => {
+      if(mission.correctOnly && (current[index]===correctOrder[index] || current.some((floor,i)=>floor===correctOrder[i] && floor===value)))return current;
       const next = current.map((slot) =>
         slot === value ? null : slot,
       );
@@ -846,6 +857,8 @@ export function AscensorBunker() {
    * el Ascensor del Búnker.
    */
   const repetirActividad = () => {
+    mission.reset();
+    pilotEvidence.resetSession();
     if (resultadoTimerRef.current !== null) {
       window.clearTimeout(resultadoTimerRef.current);
       resultadoTimerRef.current = null;
@@ -870,7 +883,18 @@ export function AscensorBunker() {
     );
   };
 
+  const pilotEvidence = useMathNumbersEvidence("mathnumbers-ascensor-bunker", mission, () => ({
+            orden_usuario: slots,
+            explicacion_texto: explanation.trim(),
+          }));
+
   const verificar = async () => {
+    if (!mission.ready) {
+      showToast("Completa los códigos que faltan en los nuevos retos de la misión.", true);
+      document.querySelector(`[data-mission="mathnumbers-ascensor-bunker"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+
     if (guardandoProgreso) {
       return;
     }
@@ -883,11 +907,12 @@ export function AscensorBunker() {
       return;
     }
 
+    const pilotSnapshot = pilotEvidence.reviewForClose();
     const total = correctOrder.filter(
       (value, index) => slots[index] === value,
-    ).length;
+    ).length + mission.correctCount;
 
-    const esCorrecto = total === correctOrder.length;
+    const esCorrecto = total === mission.total;
 
     const tiempoSegundos = Math.max(
       1,
@@ -911,16 +936,14 @@ export function AscensorBunker() {
             "mathnumbers-ascensor-bunker",
           actividad_titulo:
             "El Ascensor del Búnker",
-          respuestas: {
-            orden_usuario: slots,
-            explicacion_texto: explanation.trim(),
-          },
+          respuestas: pilotSnapshot,
           aciertos: total,
-          total_preguntas: correctOrder.length,
+          total_preguntas: mission.total,
           tiempo_segundos: tiempoSegundos,
           xp_base: 50,
           completada: esCorrecto,
         });
+      mission.recordResult({correct:total,seconds:tiempoSegundos,xp:Number(resultado.progreso.xp_obtenido ?? 0)});
 
       inicioActividadRef.current = Date.now();
 
@@ -992,7 +1015,7 @@ export function AscensorBunker() {
   };
 
   return (
-    <main className="mnx-ascensor-page">
+    <main className="mnx-ascensor-page mn-activity">
       <button
         type="button"
         className={`mnx-ascensor-hamburger ${
@@ -1131,6 +1154,8 @@ export function AscensorBunker() {
       </aside>
 
       <section className="mnx-ascensor-main">
+        <CabeceraCurricular curriculum={activityCurriculum["mathnumbers-ascensor-bunker"]} />
+
         <div className="mnx-ascensor-top-actions">
           <button
             type="button"
@@ -1197,7 +1222,8 @@ export function AscensorBunker() {
           <AscensorSumaIntro />
         </header>
 
-        <section className="mnx-ascensor-activity-grid">
+        <EnsayoDeMision activityId="mathnumbers-ascensor-bunker" />
+          <section className="mnx-ascensor-activity-grid">
           <article className="mnx-ascensor-art">
             <div className="mnx-ascensor-visual">
               <img
@@ -1290,8 +1316,7 @@ export function AscensorBunker() {
               )}
             </div>
           </section>
-
-          <section className="mnx-ascensor-placement-card">
+<section className="mnx-ascensor-placement-card">
             <div className="mnx-ascensor-question-head">
               <span>1</span>
 
@@ -1388,11 +1413,14 @@ export function AscensorBunker() {
                 Mayor
               </span>
             </div>
-          </section>
+          <PilotEvidenceStatus pilot={pilotEvidence} />
+            <RetosDeMision expansion={mission} disabled={guardandoProgreso} />
+            </section>
 
           <AscensorSumaAdvice />
 
-          <section className="mnx-ascensor-question-card mnx-ascensor-question">
+          
+<section className="mnx-ascensor-question-card mnx-ascensor-question">
             <div className="mnx-ascensor-question-head">
               <span>2</span>
 
@@ -1429,21 +1457,10 @@ export function AscensorBunker() {
           </section>
 
           <section className="mnx-ascensor-actions">
-            <button
-              type="button"
-              className="mnx-ascensor-check-btn"
-              onClick={verificar}
-              disabled={guardandoProgreso}
-              aria-busy={guardandoProgreso}
-            >
-              <FiCheckCircle />
-              {guardandoProgreso
-                ? "Guardando progreso..."
-                : "Comprobar orden"}
-            </button>
+            
 
             <p className="mnx-ascensor-progress">
-              Progreso: {progress}/5 pisos colocados · Intentos: {attempts}/3
+              Progreso: {progress + mission.readyCount}/{mission.total} pisos colocados · Intentos: {attempts}/3
             </p>
 
             <article className="mnx-ascensor-evidence-card">
@@ -1471,7 +1488,7 @@ export function AscensorBunker() {
             </article>
           </section>
         </section>
-      </section>
+      <CierreDeMision onFinish={verificar} busy={guardandoProgreso}/></section>
 
       <FloatingByteAscensor />
 
@@ -1486,6 +1503,9 @@ export function AscensorBunker() {
 
       {resultModalOpen && (
         <ResultModal
+          reviewItems={[...([-5,-2,0,3,6].map((value,i)=>({id:`native-${i}`,title:`Posición ${i+1} del ascensor`,answer:String(slots[i]??""),correct:slots[i]===value,hint:"Ordena de menor a mayor: primero los niveles más bajos, después cero y finalmente los positivos.",target:".mnx-ascensor-activity-grid"}))),...mission.items]}
+          onCorrect={(item)=>{setResultModalOpen(false);mission.beginCorrection(item);}}
+          summary={mission.result ?? undefined}
           kind={resultModalKind}
           nextRoute={escuadronTacticoRoute}
           retryRoute={ascensorRoute}

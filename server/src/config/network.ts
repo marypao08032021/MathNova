@@ -19,7 +19,10 @@ export function getServerHost(): string {
 export function getLanAddresses(): NetworkAddress[] {
   const addresses: NetworkAddress[] = [];
 
-  for (const [name, interfaces] of Object.entries(os.networkInterfaces())) {
+  let interfacesByName: ReturnType<typeof os.networkInterfaces>;
+  try { interfacesByName = os.networkInterfaces(); }
+  catch { console.warn('No se pudieron obtener las IP de red. Consulta la IP del equipo; el servidor continúa activo.'); return addresses; }
+  for (const [name, interfaces] of Object.entries(interfacesByName)) {
     for (const networkInterface of interfaces ?? []) {
       if (
         networkInterface.family === 'IPv4' &&

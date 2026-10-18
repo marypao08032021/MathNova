@@ -1,3 +1,13 @@
+import useGeometryEvidence from "../../hooks/useGeometryEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import ContinuacionDeMision from "../../components/ContinuacionDeMision";
+import DetalleErroresDeMision from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useAutoProgreso } from "../../hooks/useAutoProgreso";
 
 import { type CSSProperties, useEffect, useRef, useState } from "react";
@@ -429,6 +439,7 @@ function formatearTiempoAct2(segundos: number) {
 }
 
 function Actividad2MathGeometry() {
+ const mission=useMissionExpansion("mathgeometry-actividad-2");
   const [menuOpen, setMenuOpen] = useState(false);
   const [actividadPausadaAct2, setActividadPausadaAct2] = useState(false);
   const [segmentoSeleccionado, setSegmentoSeleccionado] =
@@ -539,21 +550,23 @@ function Actividad2MathGeometry() {
     modalCompletadoOpen,
   ]);
 
+  const pilot=useGeometryEvidence("mathgeometry-actividad-2",mission,()=>({
+      segmento_seleccionado: segmentoSeleccionado,
+      segmento_colocado: segmentoColocado,
+      errores: erroresAct2,
+    }));
+
   useAutoProgreso({
     completada: modalCompletadoOpen,
     codigo: "mathgeometry-actividad-2",
     mundo: "MathGeometry",
     tema: "Segmentos de recta",
     titulo: "La Ruta Perdida",
-    aciertos: modalCompletadoOpen ? 1 : 0,
-    totalPreguntas: 1,
+    aciertos: 1 + mission.correctCount,
+    totalPreguntas: mission.total,
     tiempoSegundos: segundosAct2,
     xpBase: 50,
-    respuestas: {
-      segmento_seleccionado: segmentoSeleccionado,
-      segmento_colocado: segmentoColocado,
-      errores: erroresAct2,
-    },
+    respuestas: pilot.evidence(),
   });
 
   const obtenerDashboardPrincipal = () => {
@@ -1623,6 +1636,8 @@ function Actividad2MathGeometry() {
   };
 
   const abrirCompletadoAct2 = (reproducir = true) => {
+ mission.finishNative(); if(!mission.ready || !mission.allCorrect){mission.review();return;}
+
     pausarExplicacionNova();
     pausarPistaAct2();
     pausarProfesorAstroAct2();
@@ -1720,6 +1735,8 @@ function Actividad2MathGeometry() {
   };
 
   const reiniciarActividadAct2 = () => {
+    mission.reset();
+    pilot.resetSession();
     cerrarSombraAct2();
     cerrarCompletadoAct2();
     reiniciarEstadoInicialAct2(true);
@@ -2026,9 +2043,8 @@ function Actividad2MathGeometry() {
   };
 
   const cerrarSombraYReiniciarAct2 = () => {
-    cerrarSombraAct2();
-    reiniciarEstadoInicialAct2();
-  };
+ cerrarSombraAct2(); setRevisado(false); setEstadoPuenteAct2("reposo"); mission.beginCorrection();
+};
 
   const cerrarCompletadoYReiniciarAct2 = () => {
     cerrarCompletadoAct2();
@@ -2095,6 +2111,7 @@ function Actividad2MathGeometry() {
 
   const animarIntentoPuenteAct2 = async (id: SegmentoId) => {
     if (!puedeElegirSegmentoAct2) return;
+    pilot.recordAll({segmento_seleccionado:id,segmento_colocado:id});
 
     pausarExplicacionNova();
     pausarPistaAct2();
@@ -2215,7 +2232,7 @@ function Actividad2MathGeometry() {
 
   return (
     <main
-      className={`act2geo-page ${
+      className={`act2geo-page mn-activity ${
         actividadPausadaAct2 ? "act2geo-activity-paused" : ""
       }`}
     >
@@ -2296,22 +2313,7 @@ function Actividad2MathGeometry() {
           </button>
         </nav>
 
-        <div className="act2geo-sidebar-progress-area">
-          <article className="act2geo-side-week-card">
-            <div className="act2geo-side-week-head">
-              <strong>Progreso semanal</strong>
-              <span>Nivel 3</span>
-            </div>
-
-            <div className="act2geo-side-progress">
-              <span>★</span>
-              <div>
-                <b style={{ width: "60%" }} />
-              </div>
-              <strong>60%</strong>
-            </div>
-          </article>
-        </div>
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathgeometry-actividad-2"].objective}</strong></div>
       </aside>
 
       <section className="act2geo-content">
@@ -2322,26 +2324,9 @@ function Actividad2MathGeometry() {
         />
 
         <section className="act2geo-main">
-          <div className="act2geo-breadcrumb">
-            <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
-              Mundos
-            </button>
+        <CabeceraCurricular curriculum={activityCurriculum["mathgeometry-actividad-2"]} />
+        
 
-            <span>›</span>
-
-            <button
-              type="button"
-              onClick={() => irARuta("/actividades/geometria")}
-            >
-              Actividades MathGeometry
-            </button>
-
-            <span>›</span>
-
-            <button type="button" className="act2geo-breadcrumb-current">
-              Act 2
-            </button>
-          </div>
 
           <header className="act2geo-topbar">
             <div className="act2geo-title-area">
@@ -2461,7 +2446,8 @@ function Actividad2MathGeometry() {
             />
           </section>
 
-          <section className="act2geo-layout">
+          <EnsayoOtrosMundos activityId="mathgeometry-actividad-2"/>
+<section className="act2geo-layout">
             <article className="act2geo-challenge-card">
               {actividadPausadaAct2 && (
                 <div className="act2geo-activity-pause-overlay">
@@ -2710,6 +2696,8 @@ function Actividad2MathGeometry() {
               </div>
             </aside>
           </section>
+ 
+
 
           <section className="act2geo-bottom-stats">
             <article>
@@ -2745,7 +2733,9 @@ function Actividad2MathGeometry() {
               </div>
             </article>
           </section>
-        </section>
+        <PilotEvidenceStatus pilot={pilot}/>
+        <ContinuacionDeMision expansion={mission} onComplete={()=>{setModalCompletadoOpen(true);}} onRestart={reiniciarActividadAct2}/>
+</section>
 
         {modalProfesorOpen && (
           <section className="act2geo-profesor-modal-overlay">
@@ -3055,6 +3045,8 @@ function Actividad2MathGeometry() {
               </div>
 
               <div className="act2geo-sombra-content">
+ <DetalleErroresDeMision items={[...([{id:"native-0",title:"Pieza del puente",answer:String(segmentoColocado??""),correct:segmentoColocado==="pieza3",hint:"Compara la forma y la longitud del hueco con cada pieza; prueba el encaje.",target:".act2geo-layout"}]),...mission.items]} onCorrect={(item)=>{cerrarSombraAct2(); setRevisado(false); setEstadoPuenteAct2("reposo"); mission.beginCorrection(item);}} onRestart={reiniciarActividadAct2}/>
+
                 <span className="act2geo-sombra-badge">
                   <FiVolume2 /> Mensaje de Sombra
                 </span>
@@ -3204,7 +3196,7 @@ function Actividad2MathGeometry() {
                 <span className="act2geo-complete-spark act2geo-complete-spark-two"></span>
               </div>
 
-              <div className="act2geo-complete-content">
+              <div className="act2geo-complete-content"><AudioRetroalimentacion/>
                 <span className="act2geo-complete-badge">
                   <GiTrophyCup /> Actividad completada
                 </span>
@@ -3246,7 +3238,7 @@ function Actividad2MathGeometry() {
                     <FiCheck />
                     <div>
                       <span>Aciertos</span>
-                      <strong>1/1</strong>
+                      <strong>{mission.total}/{mission.total}</strong>
                     </div>
                   </article>
 

@@ -1,11 +1,20 @@
-import { useState, useRef } from "react";
+import useMathDataEvidence from "../../hooks/useMathDataEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import CierreDeMision from "../../components/CierreDeMision";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import RetosDeMision from "../../components/RetosDeMision";
+import DetalleErroresDeMision, {type MissionReviewItem} from "../../components/DetalleErroresDeMision";
+import AvisoActividad from "../../components/AvisoActividad";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
+import { useState, useRef, useEffect } from "react";
 import type { DragEvent } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getSessionUser } from "../../utils/authSession";
-import {
-  guardarProgresoUsuarioActual,
-} from "../../services/progresoService";
 
 import logo from "../../assets/logo_MathNova.png";
 import "./OraculoEstacion.css";
@@ -379,6 +388,8 @@ function PistaBaitModal({
 ========================================================= */
 
 export default function OraculoEstacion() {
+ const mission=useMissionExpansion("mathdata-oraculo-estacion");
+  const [avisoActividad, setAvisoActividad] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const ID_ESTUDIANTE =
@@ -460,24 +471,28 @@ export default function OraculoEstacion() {
   };
 
   const verificarEspacio = () => {
+    pilot.recordAll();
     if (!guardandoProgreso) {
       setEspacioVerificado(true);
     }
   };
 
   const verificarPaso2 = () => {
+    pilot.recordAll();
     if (!guardandoProgreso) {
       setPaso2Verificado(true);
     }
   };
 
   const verificarComparacion = () => {
+    pilot.recordAll();
     if (!guardandoProgreso) {
       setComparacionVerificada(true);
     }
   };
 
   const verificarPrediccion = () => {
+    pilot.recordAll();
     if (!guardandoProgreso) {
       setPrediccionVerificada(true);
     }
@@ -525,6 +540,7 @@ export default function OraculoEstacion() {
   };
 
   const verificarOrden = () => {
+    pilot.recordAll();
     if (!guardandoProgreso) {
       setOrdenVerificado(true);
     }
@@ -541,154 +557,23 @@ export default function OraculoEstacion() {
   };
 
   /* ---- Envío final: activar el Oráculo ---- */
+  const pilot=useMathDataEvidence("mathdata-oraculo-estacion",mission,()=>({espacio_muestral:Array.from(espacioSeleccionado),posible_cristal_morado:posibleMorado,numero_resultados:numResultados,orden_probabilidad:orden,comparacion_1:comp1,comparacion_2:comp2,prediccion,moneda_estelar_usada:mission.correctOnly?0:1}));
+  useEffect(()=>{const attempt=pilot.receipt?.intento_piloto;if(!attempt)return;
+    setResultado(attempt.evaluacion.completada?"exito":"fallo");
+    setTiempoResultado(attempt.tiempo_segundos);setMonedaEstelar(m=>Math.max(0,m-(mission.correctOnly?0:1)));
+  },[pilot.receipt]);
+
   const handleActivarOraculo = async () => {
-    if (
-      monedaEstelar <= 0 ||
-      guardandoProgreso
-    ) {
-      return;
-    }
-
-    if (!ID_ESTUDIANTE) {
-      alert(
-        "No se encontró tu sesión. Inicia sesión nuevamente.",
-      );
-      return;
-    }
-
-    setEspacioVerificado(true);
-    setPaso2Verificado(true);
-    setOrdenVerificado(true);
-    setComparacionVerificada(true);
-    setPrediccionVerificada(true);
-
-    const todoCorrecto =
-      espacioCorrecto &&
-      paso2Correcto &&
-      ordenEsCorrecto &&
-      comparacionCorrecta &&
-      prediccionCorrecta;
-
-    const aciertosActuales = [
-      espacioCorrecto,
-      paso2Correcto,
-      ordenEsCorrecto,
-      comparacionCorrecta,
-      prediccionCorrecta,
-    ].filter(Boolean).length;
-
-    const tiempoSegundos = Math.max(
-      1,
-      Math.floor(
-        (
-          Date.now() -
-          inicioActividadRef.current
-        ) / 1000,
-      ),
-    );
-
+    if(pilot.busy)return;
     setGuardandoProgreso(true);
-
-    try {
-      const resultadoProgreso =
-        await guardarProgresoUsuarioActual({
-          mundo: "MathData",
-          tema:
-            "Probabilidad y espacio muestral",
-          actividad_codigo:
-            "mathdata-oraculo-estacion",
-          actividad_titulo:
-            "El Oráculo de la Estación",
-          respuestas: {
-            espacio_muestral:
-              Array.from(
-                espacioSeleccionado,
-              ),
-            posible_cristal_morado:
-              posibleMorado,
-            numero_resultados:
-              Number(
-                numResultados,
-              ),
-            orden_probabilidad:
-              orden,
-            comparacion_1:
-              comp1,
-            comparacion_2:
-              comp2,
-            prediccion:
-              prediccion,
-            moneda_estelar_usada:
-              1,
-          },
-          aciertos:
-            aciertosActuales,
-          total_preguntas: 5,
-          tiempo_segundos:
-            tiempoSegundos,
-          xp_base: 50,
-          completada:
-            todoCorrecto,
-        });
-
-      console.log(
-        "Progreso del Oráculo de la Estación guardado:",
-        resultadoProgreso.progreso,
-      );
-
-      setTiempoResultado(
-        tiempoSegundos,
-      );
-
-      setMonedaEstelar(
-        (monedas) =>
-          Math.max(
-            0,
-            monedas - 1,
-          ),
-      );
-
-      // Avisamos al panel (ActividadesMathData) que esta actividad (índice 6)
-      // ya se completó, para que desbloquee la 8 aunque se navegue directo
-      // con el botón "Siguiente actividad" y nunca se pase por el panel.
-      if (todoCorrecto) {
-        try {
-          const idParaDesbloqueo = ID_ESTUDIANTE || "invitado";
-          localStorage.setItem(
-            `mathdata_desbloqueo_${idParaDesbloqueo}_6`,
-            "1",
-          );
-        } catch (error) {
-          console.error(
-            "No se pudo guardar el desbloqueo de la actividad 8:",
-            error,
-          );
-        }
-      }
-
-      setResultado(
-        todoCorrecto
-          ? "exito"
-          : "fallo",
-      );
-    } catch (error) {
-      console.error(
-        "No se pudo guardar el progreso del Oráculo de la Estación:",
-        error,
-      );
-
-      const mensaje =
-        error instanceof Error
-          ? error.message
-          : "No se pudo guardar el progreso.";
-
-      alert(`❌ ${mensaje}`);
-    } finally {
-      setGuardandoProgreso(false);
-    }
+    try {await pilot.finish(Math.max(1,Math.floor((Date.now()-inicioActividadRef.current)/1000)),50);}
+    catch(error){setAvisoActividad(error instanceof Error?error.message:"No se pudo guardar; conserva esta pestaña.");}
+    finally{setGuardandoProgreso(false);}
   };
 
   const handleReiniciarActividad = () => {
+ mission.reset();
+ pilot.resetSession();
     setEspacioSeleccionado(new Set());
     setEspacioVerificado(false);
     setPosibleMorado(null);
@@ -711,24 +596,27 @@ export default function OraculoEstacion() {
   };
 
   /* ---- Resumen para las pantallas de resultado ---- */
-  const aciertos = [
+  const aciertos = pilot.evaluation?.aciertos ?? ([
     espacioCorrecto,
     paso2Correcto,
     ordenEsCorrecto,
     comparacionCorrecta,
     prediccionCorrecta,
-  ].filter(Boolean).length;
-  const totalPasos = 5;
+  ].filter(Boolean).length + mission.correctCount);
+  const totalPasos = mission.total;
   const precision = Math.round((aciertos / totalPasos) * 100);
-  const puntosGanados = resultado === "exito" ? 50 : 10;
+  const puntosGanados = pilot.receipt?.intento_piloto?.xp_obtenido ?? (resultado === "exito" ? 50 : 10);
 
   // ==========================================
   // VENTANA EMERGENTE: ACTIVIDAD COMPLETADA
   // ==========================================
 
-  if (resultado === "exito") return (
+  
+ const missionNativeItems:MissionReviewItem[]=[{id:"espacio",title:"Espacio muestral",answer:String(Array.from(espacioSeleccionado).join(", ")),correct:espacioCorrecto,hint:"Incluye solo los colores presentes en la cápsula; excluye los señuelos.",target:'[data-review-target="native-espacio"]'},{id:"resultados",title:"Resultados posibles",answer:String(`${posibleMorado}, ${numResultados}`),correct:paso2Correcto,hint:"El cristal morado es imposible; cuenta los colores que realmente existen.",target:'[data-review-target="native-resultados"]'},{id:"orden",title:"Orden de probabilidades",answer:String(orden.join(" → ")),correct:ordenEsCorrecto,hint:"Ordena por la cantidad de cristales de cada color.",target:'[data-review-target="native-orden"]'},{id:"comparacion",title:"Comparación de eventos",answer:String(`${comp1}, ${comp2}`),correct:comparacionCorrecta,hint:"Compara la proporción de cristales para decidir cada afirmación.",target:'[data-review-target="native-comparacion"]'},{id:"prediccion",title:"Predicción del cristal",answer:String(prediccion),correct:prediccionCorrecta,hint:"El color más frecuente tiene la mayor probabilidad, sin ser un resultado seguro.",target:'[data-review-target="native-prediccion"]'}];
+ const resumeMission=(item?:MissionReviewItem)=>{setResultado(null);mission.beginCorrection(item);};
+if (resultado === "exito") return (
     <div className="res-modal-overlay">
-      <div className="res-modal-card res-modal-exito res-modal-wide">
+      <div className="res-modal-card res-modal-exito res-modal-wide" role="dialog" aria-modal="true" aria-label="Misión completada">
         <div className="res-confetti" aria-hidden="true">
           {Array.from({ length: 16 }).map((_, i) => (
             <span key={i} className={`res-confetti-dot res-confetti-dot-${i % 6}`} />
@@ -779,7 +667,7 @@ export default function OraculoEstacion() {
           />
         </div>
 
-        <div className="res-modal-body">
+        <AudioRetroalimentacion/><div className="res-modal-body">
           <div className="res-modal-left">
             <div className="res-resumen-card">
               <div className="res-resumen-header">
@@ -814,9 +702,9 @@ export default function OraculoEstacion() {
                 <div className="res-stat-sep" />
                 <div className="res-stat">
                   <img src={iconoRecompensa} alt="" className="res-stat-img" />
-                  <strong className="res-pts-naranja">+{puntosGanados} pts</strong>
+                  <strong className="res-pts-naranja">{puntosGanados} XP</strong>
                   <small>Recompensa</small>
-                  <em>Puntos ganados</em>
+                  <em>XP del intento</em>
                 </div>
                 <div className="res-stat-sep" />
                 <div className="res-stat">
@@ -870,7 +758,7 @@ export default function OraculoEstacion() {
 
   if (resultado === "fallo") return (
     <div className="res-modal-overlay">
-      <div className="res-modal-card res-modal-fallo res-modal-wide">
+      <div className="res-modal-card res-modal-fallo res-modal-wide" role="dialog" aria-modal="true" aria-label="Revisa tus respuestas">
         <div className="res-titulo-row">
           <div className="res-icono-retry">&#x1F504;</div>
           <div>
@@ -910,7 +798,7 @@ export default function OraculoEstacion() {
           <img src={villanoIntentar} alt="Villano retando" className="res-villano-img" />
         </div>
 
-        <div className="res-modal-body">
+        <AudioRetroalimentacion/><div className="res-modal-body"><DetalleErroresDeMision items={pilot.reviewItems([...missionNativeItems,...mission.items])} onCorrect={resumeMission} onRestart={handleReiniciarActividad}/>
           <div className="res-modal-left">
             <div className="res-resumen-card">
               <div className="res-resumen-header">
@@ -945,9 +833,9 @@ export default function OraculoEstacion() {
                 <div className="res-stat-sep" />
                 <div className="res-stat">
                   <img src={iconoRecompensa} alt="" className="res-stat-img" />
-                  <strong className="res-pts-azul">+{puntosGanados} pts</strong>
+                  <strong className="res-pts-azul">{puntosGanados} XP</strong>
                   <small>Recompensa</small>
-                  <em>Puntos ganados</em>
+                  <em>XP del intento</em>
                 </div>
                 <div className="res-stat-sep" />
                 <div className="res-stat">
@@ -961,8 +849,8 @@ export default function OraculoEstacion() {
           </div>
 
           <div className="res-modal-right">
-            <button className="res-btn res-btn-azul" onClick={handleReiniciarActividad}>
-              Intentar de nuevo
+            <button className="res-btn res-btn-azul" onClick={()=>resumeMission(missionNativeItems.find(item=>item.correct===false))}>
+              Corregir errores
             </button>
             <button className="res-btn res-btn-outline" onClick={() => setMostrarPistaBait(true)}>
               Ver pista
@@ -1005,7 +893,8 @@ export default function OraculoEstacion() {
   // ==========================================
 
   return (
-    <div className="orc-page">
+    <div className="orc-page mn-activity">
+      {avisoActividad && <AvisoActividad message={avisoActividad} onClose={() => setAvisoActividad(null)} />}
       {/* ================= SIDEBAR ================= */}
       <aside className="orc-sidebar">
         <img src={logo} alt="MathNova" className="orc-logo-img" />
@@ -1035,19 +924,12 @@ export default function OraculoEstacion() {
           </button>
         </nav>
 
-        <div className="orc-progreso-card">
-          <small>Progreso de la actividad</small>
-          <div className="orc-progreso-track">
-            <div className="orc-progreso-fill" style={{ width: "86%" }} />
-          </div>
-          <small>6/7 actividad</small>
-        </div>
+        
 
-        <div className="orc-xp-card">
-          <small>XP acumulados</small>
-          <strong>180 XP ⭐</strong>
-        </div>
-      </aside>
+        
+      
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathdata-oraculo-estacion"].objective}</strong></div>
+</aside>
 
       {/* ================= CONTENIDO ================= */}
       <main
@@ -1057,13 +939,14 @@ export default function OraculoEstacion() {
         }}
       >
         <header className="orc-header">
-          <button className="orc-volver" type="button" onClick={() => navigate("/actividades-math-data")}>
-            <FiArrowLeft /> Volver al tema
-          </button>
+          
           <button type="button" className="orc-ayuda-btn" aria-label="Ayuda">
             <FiHelpCircle />
           </button>
         </header>
+        <CabeceraCurricular curriculum={activityCurriculum["mathdata-oraculo-estacion"]} />
+        <EnsayoOtrosMundos activityId="mathdata-oraculo-estacion"/>
+
 
         {/* FILA SUPERIOR: TÍTULO + VILLANO */}
         <div className="orc-top-row">
@@ -1166,7 +1049,7 @@ export default function OraculoEstacion() {
                     type="button"
                     className={`orc-chip ${activo ? "orc-chip-activo" : ""}`}
                     style={activo ? { background: HEX_COLOR[c], borderColor: HEX_COLOR[c] } : undefined}
-                    onClick={() => toggleColorEspacio(c)}
+                    data-review-target="native-espacio" onClick={() => toggleColorEspacio(c)}
                     aria-pressed={activo}
                     disabled={guardandoProgreso}
                   >
@@ -1240,7 +1123,7 @@ export default function OraculoEstacion() {
                       : "orc-input-incorrecto"
                     : ""
                 }`}
-                value={numResultados}
+                data-review-target="native-resultados" value={numResultados}
                 onChange={(e) => {
                   if (guardandoProgreso) return;
                   setNumResultados(e.target.value);
@@ -1274,7 +1157,7 @@ export default function OraculoEstacion() {
             </div>
             <p className="orc-paso-texto">Ordena de mayor a menor probabilidad.</p>
 
-            <div className="orc-orden-columna">
+            <div data-review-target="native-orden" className="orc-orden-columna">
               {orden.map((c, index) => (
                 <div key={c} className="orc-orden-item-col">
                   <div
@@ -1324,7 +1207,7 @@ export default function OraculoEstacion() {
               )}
             </div>
 
-            <div className="orc-comparacion-bloque">
+            <div data-review-target="native-comparacion" className="orc-comparacion-bloque">
               <p className="orc-paso-texto">{ENUNCIADO_1}</p>
               <div className="orc-opciones-radio orc-opciones-radio-fila">
                 {(["verdadero", "falso"] as const).map((op) => (
@@ -1350,7 +1233,7 @@ export default function OraculoEstacion() {
               </div>
             </div>
 
-            <div className="orc-comparacion-bloque">
+            <div data-review-target="native-comparacion" className="orc-comparacion-bloque">
               <p className="orc-paso-texto">{ENUNCIADO_2}</p>
               <div className="orc-opciones-radio orc-opciones-radio-fila">
                 {(["verdadero", "falso"] as const).map((op) => (
@@ -1397,14 +1280,14 @@ export default function OraculoEstacion() {
                   : <FiCheckCircle className="orc-check-alerta" />
               )}
             </div>
-            <p className="orc-paso-texto">¿Qué color crees que saldrá en el Oráculo?</p>
+            <p className="orc-paso-texto">¿Qué color tiene mayor probabilidad de salir? Justifica tu elección con los datos de la cápsula.</p>
 
             <div className="orc-opciones-radio orc-opciones-radio-grid">
               {COLORES_CAPSULA.map((c) => (
                 <button
                   key={c}
                   type="button"
-                  className={`orc-opcion-radio ${prediccion === c ? "orc-opcion-radio-activa" : ""}`}
+                  data-review-target="native-prediccion" className={`orc-opcion-radio ${prediccion === c ? "orc-opcion-radio-activa" : ""}`}
                   onClick={() => {
                     if (guardandoProgreso) return;
                     setPrediccion(c);
@@ -1455,28 +1338,10 @@ export default function OraculoEstacion() {
             <FiInfo /> Revisa tus análisis. Cuando estés listo, usa tu moneda para activar el Oráculo.
           </div>
 
-          <button
-            type="button"
-            className="orc-activar-btn"
-            onClick={handleActivarOraculo}
-            disabled={
-              monedaEstelar <= 0 ||
-              guardandoProgreso
-            }
-            aria-busy={guardandoProgreso}
-          >
-            <FiZap />
-            <span>
-              {guardandoProgreso
-                ? "Guardando progreso..."
-                : "Activar Oráculo"}
-              <small>
-                Usar 1 moneda estelar
-              </small>
-            </span>
-          </button>
+          <p className="mn-finish-direction">Cuando completes los retos, usa «Terminar misión» al final de la actividad.</p>
         </div>
-      </main>
+      <PilotEvidenceStatus pilot={pilot}/>
+<RetosDeMision expansion={mission}/><CierreDeMision onFinish={()=>void handleActivarOraculo()} busy={pilot.busy}/></main>
 
       {mostrarIntroBait && (
         <PistaBaitModal

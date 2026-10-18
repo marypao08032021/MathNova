@@ -31,6 +31,10 @@ import docenteAvanceRoutes from "./routes/docenteAvance.routes";
 import docenteEstadisticasRoutes from "./routes/docenteEstadisticas.routes";
 import gestionDocentesRoutes from "./routes/gestionDocentes.routes";
 
+import pool from "./db";
+// @ts-ignore Ruta administrativa validada en el servidor.
+import superAdminRoutes from "./routes/superAdminRoutes";
+
 const app = express();
 const clientDistPath = process.env.CLIENT_DIST_PATH
   ? path.resolve(process.env.CLIENT_DIST_PATH)
@@ -44,16 +48,19 @@ app.use(
 );
 
 app.use(express.json());
+// El entorno tester utiliza los validadores reales y modelos en memoria, sin escrituras SQL.
+const testerSession = require('./services/testerSession');
+testerSession.installModels(require('./models'));
+app.use('/api', require('./middlewares/testerMiddleware'));
+app.use('/api/tester', require('./routes/testerRoutes'));
 
-app.get("/", (_req, res) => {
-  res.json({
-    ok: true,
-    mensaje: "Servidor MathNova funcionando",
-  });
-});
-
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "mathnova-server" });
+app.get("/api/health", async (_req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ ok: true, service: 'mathnova-server', database: 'connected' });
+  } catch {
+    res.status(503).json({ ok: false, service: 'mathnova-server', database: 'unavailable' });
+  }
 });
 
 app.get("/api/network-info", (req, res) => {
@@ -70,6 +77,12 @@ app.get("/api/network-info", (req, res) => {
 // RUTAS
 // ============================================
 
+app.use("/api/aula", require("./routes/aulaRoutes"));
+app.use("/api/avisos", require("./routes/avisosRoutes"));
+app.use("/api/seguimiento", require("./routes/seguimientoRoutes"));
+app.use("/api/piloto", require("./routes/pilotRoutes"));
+app.use("/api", require("./middlewares/aulaMiddleware"));
+app.use("/api/docente", require("./middlewares/docenteScopeMiddleware"));
 app.use("/api", syncRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/proporcionalidad", proporcionalidadRoutes);
@@ -82,6 +95,7 @@ app.use("/api/sensor", sensorRoutes);
 app.use("/api/nucleo", nucleoRoutes);
 app.use("/api/oraculo", oraculoRoutes);
 app.use("/api/alumno", alumnoRoutes);
+app.use("/api/superadmin", superAdminRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/grupos", gruposRoutes);
 app.use("/api/docente/alumnos", docenteAlumnosRoutes);

@@ -91,6 +91,8 @@ const decodificarUsuarioDesdeToken = () => {
 };
 
 export function clearAuthSession() {
+  window.dispatchEvent(new Event("mathnova-before-logout"));
+  sessionStorage.removeItem("mathnova_tester_session");
   TOKEN_KEYS.forEach((clave) => {
     localStorage.removeItem(clave);
     sessionStorage.removeItem(clave);
@@ -111,6 +113,7 @@ export function startGuestSession() {
 }
 
 export function saveAuthSession(token: string, usuario: unknown) {
+  sessionStorage.removeItem("mathnova_tester_session");
   localStorage.removeItem(GUEST_KEY);
   sessionStorage.removeItem(GUEST_KEY);
 

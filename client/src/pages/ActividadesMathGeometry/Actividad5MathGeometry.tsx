@@ -1,3 +1,15 @@
+import {useLiveEvidence} from '../../utils/livePresence';
+import usePilotEvidence from "../../hooks/usePilotEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import {resetPilotSession} from "../../utils/pilotEvidence";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import ContinuacionDeMision from "../../components/ContinuacionDeMision";
+import DetalleErroresDeMision from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useAutoProgreso } from "../../hooks/useAutoProgreso";
 
 import {
@@ -573,6 +585,10 @@ function VideoCanvasTransparente({
 }
 
 function Actividad5MathGeometry() {
+ const mission=useMissionExpansion("mathgeometry-actividad-5");
+ const pilot=usePilotEvidence("mathgeometry-actividad-5");
+ const nativeAnswers=useRef<Record<string,string>>({});
+ const hintUsed=useRef(false);
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -644,16 +660,22 @@ function Actividad5MathGeometry() {
     mundo: "MathGeometry",
     tema: "Punto medio de un segmento",
     titulo: "El Taller del Ingeniero",
-    aciertos: RETOS.length,
-    totalPreguntas: RETOS.length,
+    aciertos: RETOS.length + mission.correctCount,
+    totalPreguntas: mission.total,
     tiempoSegundos: segundos,
     xpBase: 240,
     respuestas: {
+      mission_expansion: mission.evidence,
+      piloto_nativas: {...nativeAnswers.current},
+      piloto: {retroalimentacion_vista:errores>0||mission.correctOnly,pista_declarada:hintUsed.current},
       errores,
       puentes_completados: RETOS.length,
     },
   });
 
+  useEffect(()=>{if(mission.reviewSequence>0)void pilot.record({piloto_nativas:{...nativeAnswers.current},mission_expansion:mission.evidence},{retroalimentacion_vista:errores>0||mission.correctOnly,pista_declarada:hintUsed.current});},[mission.reviewSequence]);
+
+ useLiveEvidence("mathgeometry-actividad-5",()=>({piloto_nativas:{...nativeAnswers.current},mission_expansion:mission.evidence}));
   const tiempo = useMemo(() => {
     const minutos = Math.floor(segundos / 60)
       .toString()
@@ -878,7 +900,7 @@ function Actividad5MathGeometry() {
     setReinicioModal((valor) => valor + 1);
   };
 
-  const reproducirPista = () => {
+  const reproducirPista = () => {hintUsed.current=true;
     const audio = audioPistaRef.current;
     if (!audio || !audio.src || modal !== "byte") return;
 
@@ -1098,7 +1120,8 @@ function Actividad5MathGeometry() {
 
     if (retoCelebrado >= RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1200,6 +1223,8 @@ function Actividad5MathGeometry() {
 
   const comprobar = () => {
     if (!seleccion || pausado || aciertoEspecial !== null) return;
+    nativeAnswers.current['native-'+retoActual]=seleccion;
+    void pilot.record({piloto_nativas:{...nativeAnswers.current},mission_expansion:mission.evidence},{retroalimentacion_vista:errores>0||mission.correctOnly,pista_declarada:hintUsed.current});
 
     if (seleccion === reto.correcta) {
       setRevision("correcto");
@@ -1226,7 +1251,8 @@ function Actividad5MathGeometry() {
 
     if (retoActual === RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1236,6 +1262,8 @@ function Actividad5MathGeometry() {
   };
 
   const reiniciar = () => {
+    nativeAnswers.current={};hintUsed.current=false;resetPilotSession("mathgeometry-actividad-5");
+    mission.reset();
     setRetoActual(0);
     setSeleccion(null);
     setRevision("pendiente");
@@ -1300,13 +1328,14 @@ function Actividad5MathGeometry() {
 
     setModalReproduciendo(false);
     setModal(null);
-    setSeleccion(null);
     setRevision("pendiente");
     setTextoSombra(TEXTO_INICIAL_SOMBRA);
     setIndiceSombraActivo(-1);
     setProgresoSombraActivo(0);
     setReinicioModal((valor) => valor + 1);
-  };
+  
+ mission.beginCorrection();
+};
 
   const videoModal =
     modal === "profesor"
@@ -1323,7 +1352,7 @@ function Actividad5MathGeometry() {
         : "Mensaje de Sombra";
 
   return (
-    <main className="act5geo-page">
+    <main className="act5geo-page mn-activity">
       <button
         type="button"
         className={`act5geo-hamburger-btn ${
@@ -1405,22 +1434,7 @@ function Actividad5MathGeometry() {
           </button>
         </nav>
 
-        <div className="act5geo-sidebar-progress-area">
-          <article className="act5geo-side-week-card">
-            <div className="act5geo-side-week-head">
-              <strong>Progreso semanal</strong>
-              <span>Nivel 3</span>
-            </div>
-
-            <div className="act5geo-side-progress">
-              <span>★</span>
-              <div>
-                <b style={{ width: "60%" }} />
-              </div>
-              <strong>60%</strong>
-            </div>
-          </article>
-        </div>
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathgeometry-actividad-5"].objective}</strong></div>
       </aside>
 
       <section className="act5geo-content">
@@ -1431,26 +1445,9 @@ function Actividad5MathGeometry() {
         />
 
         <section className="act5geo-main">
-          <div className="act5geo-breadcrumb">
-            <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
-              Mundos
-            </button>
+        <CabeceraCurricular curriculum={activityCurriculum["mathgeometry-actividad-5"]} />
+        
 
-            <span>›</span>
-
-            <button
-              type="button"
-              onClick={() => irARuta("/actividades/geometria")}
-            >
-              Actividades MathGeometry
-            </button>
-
-            <span>›</span>
-
-            <button type="button" className="act5geo-breadcrumb-current">
-              Act 5
-            </button>
-          </div>
 
           <header className="act5geo-topbar">
             <div className="act5geo-title-area">
@@ -1577,7 +1574,8 @@ function Actividad5MathGeometry() {
             </div>
           </section>
 
-          <div className="act5geo-layout">
+          <EnsayoOtrosMundos activityId="mathgeometry-actividad-5"/>
+<div className="act5geo-layout">
             <section className="act5geo-game-card">
               <div className="act5geo-challenge-head">
                 <span>
@@ -1737,6 +1735,8 @@ function Actividad5MathGeometry() {
               </article>
             </aside>
           </div>
+ 
+
 
           <section className="act5geo-bottom-stats">
             <article>
@@ -1773,7 +1773,8 @@ function Actividad5MathGeometry() {
               </div>
             </article>
           </section>
-        </section>
+        <PilotEvidenceStatus pilot={pilot}/><ContinuacionDeMision expansion={mission} onComplete={()=>{setModal("completado");}} onRestart={reiniciar}/>
+</section>
 
         <footer className="act5geo-footer">
           <div className="act5geo-footer-icons">
@@ -1937,7 +1938,7 @@ function Actividad5MathGeometry() {
               />
             )}
 
-            <div className="act5geo-modal-content">
+            <div className="act5geo-modal-content"><AudioRetroalimentacion/>
               <span className="act5geo-modal-badge">
                 <FiVolume2 />
                 {modal === "profesor"
@@ -2116,6 +2117,8 @@ function Actividad5MathGeometry() {
 
               {modal === "sombra" && (
                 <div className="act5geo-modal-script-lines act5geo-sombra-script-lines">
+ <DetalleErroresDeMision items={[...(RETOS.map((r,i)=>({id:`native-${i}`,title:i===retoActual?reto.pregunta:`Reto geométrico ${i+1}`,answer:i===retoActual?(reto.opciones.find(o=>o.id===seleccion)?.texto||"Sin respuesta"):i<completados?"Validado en la misión":"",correct:i<completados?true:i===retoActual?Boolean(seleccion===reto.correcta):null,hint:i===retoActual?`Revisa la propiedad indicada en el reto. La opción que corresponde es: ${reto.opciones.find(o=>o.id===reto.correcta)?.texto}. Consulta la pista para justificarla.`:"Puedes consultar la pista del personaje cuando llegues a este reto.",target:".act5geo-layout"})).filter((_,i)=>i<=retoActual)),...mission.items]} onCorrect={(item)=>{setModal(null); setRevision("pendiente"); audioSombraRef.current?.pause(); mission.beginCorrection(item);}} onRestart={reiniciar}/>
+
                   {GUION_SOMBRA_ERROR.map((linea, indice) => (
                     <p
                       key={linea}
@@ -2202,7 +2205,7 @@ function Actividad5MathGeometry() {
               }}
             />
 
-            <div className="act5geo-complete-content">
+            <div className="act5geo-complete-content"><AudioRetroalimentacion/>
               <span>🏆 Taller completado</span>
               <h2>¡Puentes completados!</h2>
 
@@ -2244,7 +2247,7 @@ function Actividad5MathGeometry() {
                 <article>
                   <FiCheck />
                   <span>Puentes</span>
-                  <strong>6/6</strong>
+                  <strong>{mission.total}/{mission.total}</strong>
                 </article>
                 <article>
                   <FiTarget />

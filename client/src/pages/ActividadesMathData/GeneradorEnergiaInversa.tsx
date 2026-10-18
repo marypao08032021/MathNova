@@ -1,3 +1,15 @@
+import useMathDataEvidence from "../../hooks/useMathDataEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import CierreDeMision from "../../components/CierreDeMision";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import RetosDeMision from "../../components/RetosDeMision";
+import DetalleErroresDeMision, {type MissionReviewItem} from "../../components/DetalleErroresDeMision";
+import AvisoActividad from "../../components/AvisoActividad";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -66,9 +78,6 @@ import { GiRingedPlanet, GiTrophyCup } from "react-icons/gi";
 import { FaStar, FaShieldAlt, FaGem, FaLightbulb, FaHandPointUp, FaBroadcastTower } from "react-icons/fa";
 import { FiRefreshCw } from "react-icons/fi";
 import { getSessionUser } from "../../utils/authSession";
-import {
-  guardarProgresoUsuarioActual,
-} from "../../services/progresoService";
 
 // ============================================
 // CONFIGURACIÓN DEL BACKEND
@@ -489,18 +498,16 @@ function ResultAudioPlayer({ src }: { src: string }) {
     audio.currentTime = 0;
     audio.volume = 1;
 
+    let resultPlaybackActive = true;
     const playPromise = audio.play();
-
     if (playPromise !== undefined) {
       playPromise.catch((error) => {
-        console.warn(
-          "El audio del resultado no pudo iniciarse automáticamente:",
-          error,
-        );
+        if (!resultPlaybackActive || error?.name === "AbortError") return;
+        console.warn("El audio del resultado no pudo iniciarse automáticamente:", error);
       });
     }
-
     return () => {
+      resultPlaybackActive = false;
       audio.pause();
       audio.currentTime = 0;
     };
@@ -585,6 +592,8 @@ function ResultAudioPlayer({ src }: { src: string }) {
 // ============================================
 
 function GeneradorEnergiaInversa() {
+ const mission=useMissionExpansion("mathdata-generador-energia");
+  const [avisoActividad, setAvisoActividad] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -691,7 +700,7 @@ function GeneradorEnergiaInversa() {
           if (progreso.completada) {
             setActividadCompletada(true);
             setXpGanado(progreso.xp_obtenido || 0);
-            setResultado("exito");
+            setResultado(null);
           }
         }
       } catch (error) {
@@ -732,6 +741,8 @@ function GeneradorEnergiaInversa() {
   // ==========================================
 
   const handleReiniciarActividad = async () => {
+ mission.reset();
+ pilot.resetSession();
     try {
       await fetch(`${API_URL}/proporcionalidad/reiniciar`, {
         method: "POST",
@@ -771,6 +782,7 @@ function GeneradorEnergiaInversa() {
   // ==========================================
 
   const actualizarFila = async (index: number, valor: string) => {
+    if(valor!=="")pilot.recordAll({valores_tabla:Object.fromEntries(filas.map((f,i)=>[String(f.x),i===index?valor:f.y]))});
     if (!ID_ESTUDIANTE) {
       setMensajeFeedback(
         "❌ No se encontró tu sesión. Inicia sesión nuevamente.",
@@ -868,230 +880,18 @@ function GeneradorEnergiaInversa() {
   // VALIDAR PREDICCIÓN CON BACKEND
   // ==========================================
 
+  const pilot=useMathDataEvidence("mathdata-generador-energia",mission,()=>({valores_tabla:Object.fromEntries(filas.map(f=>[String(f.x),f.y])),grafica_completa:graficaCompleta,puntos_grafica:[...puntos,...puntosAsistidos],prediccion_reactores:respuesta,filas_asistidas:filas.filter(f=>f.asistida||f.bloqueada).map(f=>f.x)}));
+  useEffect(()=>{const attempt=pilot.receipt?.intento_piloto;if(!attempt)return;
+    setResultado(attempt.evaluacion.completada?"exito":"fallo");
+    setActividadCompletada(attempt.evaluacion.completada);setProgresoPorcentaje(attempt.evaluacion.completada?100:80);setXpGanado(attempt.xp_obtenido);
+  },[pilot.receipt]);
+
   const handleEnviarPrediccion = async () => {
-    if (
-      respuesta.trim() === "" ||
-      cargando ||
-      guardandoProgresoRef.current
-    ) {
-      if (respuesta.trim() === "") {
-        setMensajeFeedback(
-          "⚠️ Escribe una respuesta antes de enviar.",
-        );
-      }
-      return;
-    }
-
-    if (!ID_ESTUDIANTE) {
-      setMensajeFeedback(
-        "❌ No se encontró tu sesión. Inicia sesión nuevamente.",
-      );
-      return;
-    }
-
+    if(pilot.busy)return;
     setCargando(true);
-    guardandoProgresoRef.current =
-      true;
-
-    try {
-      const response = await fetch(
-        `${API_URL}/proporcionalidad/prediccion`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            id_estudiante:
-              ID_ESTUDIANTE,
-            prediccion:
-              Number(respuesta),
-          }),
-        },
-      );
-
-      const data =
-        await response.json();
-
-      console.log(
-        "Respuesta del backend:",
-        data,
-      );
-
-      if (!response.ok) {
-        throw new Error(
-          data?.mensaje ||
-            data?.message ||
-            `HTTP ${response.status}`,
-        );
-      }
-
-      if (data.success && data.data) {
-        const resultadoBackend =
-          data.data;
-
-        setMensajeFeedback(
-          resultadoBackend.mensaje,
-        );
-
-        const finalizada =
-          Boolean(
-            resultadoBackend.correcto ||
-              resultadoBackend.completada,
-          );
-
-        if (!finalizada) {
-          return;
-        }
-
-        const prediccionCorrecta =
-          Boolean(
-            resultadoBackend.correcto,
-          );
-
-        const filasCorrectas =
-          filas.filter(
-            (fila) =>
-              !fila.editable ||
-              fila.correcto === true ||
-              fila.bloqueada,
-          ).length;
-
-        const tablaCompleta =
-          filasCorrectas ===
-          filas.length;
-
-        /*
-         * La actividad se resume en tres evidencias:
-         * 1) tabla, 2) gráfica y 3) predicción.
-         */
-        const aciertosUnificados =
-          Number(tablaCompleta) +
-          Number(graficaCompleta) +
-          Number(prediccionCorrecta);
-
-        const tiempoSegundos =
-          Math.max(
-            1,
-            Math.floor(
-              (
-                Date.now() -
-                inicioActividadRef.current
-              ) / 1000,
-            ),
-          );
-
-        try {
-          const progresoUnificado =
-            await guardarProgresoUsuarioActual({
-              mundo: "MathData",
-              tema:
-                "Relaciones y proporciones",
-              actividad_codigo:
-                "mathdata-generador-energia",
-              actividad_titulo:
-                "Generador de Energía Inversa",
-              respuestas: {
-                valores_tabla:
-                  filas.reduce<
-                    Record<string, number>
-                  >(
-                    (
-                      acumulado,
-                      fila,
-                    ) => {
-                      if (
-                        fila.y !== ""
-                      ) {
-                        acumulado[
-                          String(fila.x)
-                        ] =
-                          Number(fila.y);
-                      }
-
-                      return acumulado;
-                    },
-                    {},
-                  ),
-                grafica_completa:
-                  graficaCompleta,
-                puntos_grafica:
-                  puntos,
-                prediccion_reactores:
-                  Number(respuesta),
-              },
-              aciertos:
-                aciertosUnificados,
-              total_preguntas: 3,
-              tiempo_segundos:
-                tiempoSegundos,
-              xp_base: 60,
-              completada:
-                finalizada &&
-                tablaCompleta,
-            });
-
-          console.log(
-            "Progreso del Generador de Energía guardado:",
-            progresoUnificado.progreso,
-          );
-        } catch (
-          progresoError
-        ) {
-          console.error(
-            "La actividad se validó, pero no se pudo registrar en el progreso unificado:",
-            progresoError,
-          );
-        }
-
-        inicioActividadRef.current =
-          Date.now();
-
-        setActividadCompletada(true);
-        setProgresoPorcentaje(100);
-
-        // ✅ CORREGIDO: "finalizada" (correcto O completada con ayuda en
-        // el 3er intento) siempre manda a éxito — el color naranja en la
-        // tabla/gráfica ya deja claro que hubo asistencia, no hace falta
-        // una pantalla de "fallo" por eso.
-        setXpGanado(100);
-        await guardarProgreso(8);
-        setResultado("exito");
-      } else if (
-        data.success === false
-      ) {
-        alert(
-          `❌ ${
-            data.mensaje ||
-            "Error al procesar la respuesta."
-          }`,
-        );
-      } else {
-        alert(
-          "❌ Error al procesar la respuesta.",
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Error al enviar predicción:",
-        error,
-      );
-
-      const mensaje =
-        error instanceof Error
-          ? error.message
-          : "Error al conectar con el servidor.";
-
-      setMensajeFeedback(
-        `❌ ${mensaje}`,
-      );
-    } finally {
-      setCargando(false);
-      guardandoProgresoRef.current =
-        false;
-      setRespuesta("");
-    }
+    try {await pilot.finish(Math.max(1,Math.floor((Date.now()-inicioActividadRef.current)/1000)),60);}
+    catch(error){setAvisoActividad(error instanceof Error?error.message:"No se pudo guardar; conserva esta pestaña.");}
+    finally{setCargando(false);}
   };
 
   // ==========================================
@@ -1099,6 +899,7 @@ function GeneradorEnergiaInversa() {
   // ==========================================
 
   const handleVerificarPuntos = () => {
+    pilot.recordAll();
     const puntosEsperados = [
       { x: 1, y: 12 },
       { x: 2, y: 6 },
@@ -1113,15 +914,15 @@ function GeneradorEnergiaInversa() {
       puntosAsistidos.some(p => p.x === pEsperado.x && p.y === pEsperado.y)
     );
 
-    if (todosLosPuntos) {
+    if (todosLosPuntos && [...puntos,...puntosAsistidos].every(p=>puntosEsperados.some(e=>e.x===p.x&&e.y===p.y))) {
       setMensajeFeedback("✅ ¡Todos los puntos están correctos! Has completado la gráfica.");
       setGraficaCompleta(true);
       setProgresoPorcentaje(80);
-      alert("🎉 ¡Gráfica completada correctamente!");
+      setAvisoActividad("🎉 ¡Gráfica completada correctamente!");
     } else {
       setGraficaCompleta(false);
       setMensajeFeedback("❌ Faltan puntos o algunos están incorrectos. Revisa la tabla.");
-      alert("❌ Faltan puntos o algunos están incorrectos. Revisa la tabla.");
+      setAvisoActividad("❌ Faltan puntos o algunos están incorrectos. Revisa la tabla.");
     }
   };
 
@@ -1157,6 +958,12 @@ function GeneradorEnergiaInversa() {
   // ==========================================
   // PANTALLA: PISTA (AYUDA)
   // ==========================================
+
+ const missionNativeItems:MissionReviewItem[]=[{id:"tabla",title:"Tabla de reactores",answer:String(JSON.stringify(filas.filter(f=>f.editable).map(f=>({x:f.x,y:f.y})))),correct:filas.every(f=>Number(f.y)===12/f.x),hint:"El producto reactores × tiempo es 12; para 4, 6 y 12 reactores corresponden 3, 2 y 1.",target:'[data-review-target="native-tabla"]'},{id:"grafica",title:"Puntos de la gráfica",answer:String(JSON.stringify(puntos)),correct:graficaCompleta,hint:"Comprueba las coordenadas de cada par (reactores, tiempo).",target:'[data-review-target="native-grafica"]'},{id:"prediccion",title:"Predicción para recargar en 2 horas",answer:String(respuesta),correct:Number(respuesta)===6,hint:"Conserva el producto 12: reactores × 2 horas = 12; necesitas 6 reactores.",target:'[data-review-target="native-prediccion"]'}];
+ const missionReviewScore=pilot.evaluation?.aciertos ?? (missionNativeItems.filter(item=>item.correct===true).length+mission.correctCount);
+ const missionReviewPrecision=Math.round(missionReviewScore/mission.total*100);
+ const resumeMission=(item?:MissionReviewItem)=>{if(Number(respuesta)!==6)setActividadCompletada(false);setResultado(null);mission.beginCorrection(item);};
+
 
   if (resultado === "pista") return (
     <div className="pista-page">
@@ -1267,7 +1074,7 @@ function GeneradorEnergiaInversa() {
 
               <div className="pista-stat">
                 <img src={iconoAciertos} alt="" className="pista-stat-img" />
-                <strong className="pista-azul">1/3</strong>
+                <strong className="pista-azul">{missionReviewScore}/{mission.total}</strong>
                 <small>Aciertos</small>
                 <em>Puedes mejorar</em>
               </div>
@@ -1285,7 +1092,7 @@ function GeneradorEnergiaInversa() {
 
               <div className="pista-stat">
                 <img src={iconoPrecision} alt="" className="pista-stat-img" />
-                <strong className="pista-verde">33%</strong>
+                <strong className="pista-verde">{missionReviewPrecision}%</strong>
                 <small>Precisión</small>
                 <em>¡Buen uso!</em>
               </div>
@@ -1322,7 +1129,7 @@ function GeneradorEnergiaInversa() {
               <img src={estrellaMision} alt="" className="pista-hito-estrella" />
               <div>
                 <small>Siguiente hito</small>
-                <strong className="pista-hito-pct">80%</strong>
+                <strong className="pista-hito-pct">{missionReviewPrecision}%</strong>
                 <small>Gran Analista</small>
               </div>
             </div>
@@ -1468,7 +1275,7 @@ function GeneradorEnergiaInversa() {
                 <img src={iconoAciertos} alt="" className="inc-stat-img" />
                 <div className="inc-stat-text">
                   <span className="inc-stat-label">Aciertos</span>
-                  <strong className="inc-stat-val inc-azul">2/3</strong>
+                  <strong className="inc-stat-val inc-azul">{missionReviewScore}/{mission.total}</strong>
                   <em>¡Buen trabajo!</em>
                 </div>
               </div>
@@ -1490,7 +1297,7 @@ function GeneradorEnergiaInversa() {
                 <img src={iconoPrecision} alt="" className="inc-stat-img" />
                 <div className="inc-stat-text">
                   <span className="inc-stat-label">Precisión</span>
-                  <strong className="inc-stat-val inc-azul">67%</strong>
+                  <strong className="inc-stat-val inc-azul">{missionReviewPrecision}%</strong>
                   <em>¡Buen avance!</em>
                 </div>
               </div>
@@ -1501,8 +1308,8 @@ function GeneradorEnergiaInversa() {
                 <img src={iconoRecompensa} alt="" className="inc-stat-img" />
                 <div className="inc-stat-text">
                   <span className="inc-stat-label">Recompensa</span>
-                  <strong className="inc-stat-val inc-naranja">+20 pts</strong>
-                  <em>Puntos ganados</em>
+                  <strong className="inc-stat-val inc-naranja">{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                  <em>XP del intento</em>
                 </div>
               </div>
 
@@ -1537,7 +1344,7 @@ function GeneradorEnergiaInversa() {
               <img src={estrellaMision} alt="" className="inc-hito-estrella" />
               <div>
                 <small>Siguiente hito</small>
-                <strong className="inc-hito-pct">60%</strong>
+                <strong className="inc-hito-pct">{missionReviewPrecision}%</strong>
                 <small>Gran Analista</small>
               </div>
             </div>
@@ -1579,7 +1386,8 @@ function GeneradorEnergiaInversa() {
   // ==========================================
 
   if (cargandoInicial) {
-    return (
+  
+  return (
       <div className="gen1-loading-screen">
         <img src={logo} alt="MathNova" className="gen1-loading-logo" />
         <p>Cargando actividad...</p>
@@ -1592,7 +1400,8 @@ function GeneradorEnergiaInversa() {
   // ==========================================
 
   return (
-    <main className="gen1-page">
+    <main className="gen1-page mn-activity">
+      {avisoActividad && <AvisoActividad message={avisoActividad} onClose={() => setAvisoActividad(null)} />}
       {/* TRANSMISIÓN DEL VILLANO: aparece antes de comenzar el desafío */}
       {mostrarIntroVillano && (
         <PistaBaitModal
@@ -1649,7 +1458,7 @@ function GeneradorEnergiaInversa() {
                 </div>
               </header>
 
-              <div className="gen1r-modal-content">
+              <div className="gen1r-modal-content"><AudioRetroalimentacion/>
                 <div className="gen1r-modal-character">
                   <img
                     src={villanoTrofeoCompleto}
@@ -1683,7 +1492,7 @@ function GeneradorEnergiaInversa() {
                     </div>
                     <div>
                       <span>Aciertos</span>
-                      <strong>3/3</strong>
+                      <strong>{missionReviewScore}/{mission.total}</strong>
                       <small>¡Perfecto!</small>
                     </div>
                   </article>
@@ -1705,7 +1514,7 @@ function GeneradorEnergiaInversa() {
                     </div>
                     <div>
                       <span>Precisión</span>
-                      <strong>100%</strong>
+                      <strong>{missionReviewPrecision}%</strong>
                       <small>¡Impecable!</small>
                     </div>
                   </article>
@@ -1716,8 +1525,8 @@ function GeneradorEnergiaInversa() {
                     </div>
                     <div>
                       <span>Recompensa</span>
-                      <strong>+50 pts</strong>
-                      <small>Puntos ganados</small>
+                      <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                      <small>XP del intento</small>
                     </div>
                   </article>
 
@@ -1797,7 +1606,7 @@ function GeneradorEnergiaInversa() {
             <div className="gen1r-modal-decoration gen1r-modal-decoration--one" />
             <div className="gen1r-modal-decoration gen1r-modal-decoration--two" />
 
-            <div className="gen1r-modal-main">
+            <div className="gen1r-modal-main"><DetalleErroresDeMision items={pilot.reviewItems([...missionNativeItems,...mission.items])} onCorrect={resumeMission} onRestart={handleReiniciarActividad}/>
               <header className="gen1r-modal-header">
                 <div className="gen1r-modal-status-icon">
                   <FiRefreshCw />
@@ -1818,7 +1627,7 @@ function GeneradorEnergiaInversa() {
                 </div>
               </header>
 
-              <div className="gen1r-modal-content">
+              <div className="gen1r-modal-content"><AudioRetroalimentacion/>
                 <div className="gen1r-modal-character">
                   <img src={villanoIntentar} alt="Villano retando" draggable={false} />
                 </div>
@@ -1849,7 +1658,7 @@ function GeneradorEnergiaInversa() {
                     </div>
                     <div>
                       <span>Aciertos</span>
-                      <strong>1/3</strong>
+                      <strong>{missionReviewScore}/{mission.total}</strong>
                       <small>¡Sigue así!</small>
                     </div>
                   </article>
@@ -1871,7 +1680,7 @@ function GeneradorEnergiaInversa() {
                     </div>
                     <div>
                       <span>Precisión</span>
-                      <strong>33%</strong>
+                      <strong>{missionReviewPrecision}%</strong>
                       <small>Puedes mejorar</small>
                     </div>
                   </article>
@@ -1882,8 +1691,8 @@ function GeneradorEnergiaInversa() {
                     </div>
                     <div>
                       <span>Recompensa</span>
-                      <strong>+10 pts</strong>
-                      <small>Puntos ganados</small>
+                      <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                      <small>XP del intento</small>
                     </div>
                   </article>
 
@@ -1922,10 +1731,10 @@ function GeneradorEnergiaInversa() {
                 <button
                   type="button"
                   className="gen1r-modal-action gen1r-modal-action--primary"
-                  onClick={handleReiniciarActividad}
+                  onClick={()=>resumeMission(missionNativeItems.find(item=>item.correct===false))}
                 >
                   <FiRefreshCw />
-                  <span>Intentar de nuevo</span>
+                  <span>Corregir errores</span>
                 </button>
 
                 <button
@@ -2043,9 +1852,9 @@ function GeneradorEnergiaInversa() {
           </div>
 
           <div className="gen1-xp-box">
-            <span>XP acumulados</span>
+            <span>XP del último intento</span>
             <strong>
-              {xpGanado || 120} XP <FaStar />
+              {pilot.receipt?.intento_piloto?.xp_obtenido ?? "—"} XP <FaStar />
             </strong>
           </div>
         </div>
@@ -2072,16 +1881,11 @@ function GeneradorEnergiaInversa() {
 
       {/* ===================== CONTENIDO ===================== */}
       <section className="gen1-content">
+        <CabeceraCurricular curriculum={activityCurriculum["mathdata-generador-energia"]} />
+        
+
         <div className="gen1-topbar">
-          <button
-            type="button"
-            className="gen1-back-btn"
-            onClick={() => irARuta("/actividades-math-data")}
-            aria-label="Volver al tema"
-          >
-            <FiArrowLeft />
-            Volver al tema
-          </button>
+
 
           <span className="gen1-step-pill">Actividad 1 de 2</span>
 
@@ -2127,6 +1931,8 @@ function GeneradorEnergiaInversa() {
             <img src={heroBanner} alt="" className="gen1-hero-bg" />
           </div>
         </div>
+<EnsayoOtrosMundos activityId="mathdata-generador-energia"/>
+
 
         {/* MENSAJE DE FEEDBACK */}
         {mensajeFeedback && (
@@ -2142,7 +1948,7 @@ function GeneradorEnergiaInversa() {
         {/* MENSAJE DE ACTIVIDAD COMPLETADA */}
         {actividadCompletada && (
           <div className="gen1-completada-box">
-            🎉 ¡Misión completada! Has ganado {xpGanado} XP.
+            🎉 ¡Misión completada! Resultado del intento: {xpGanado} XP.
           </div>
         )}
 
@@ -2173,7 +1979,7 @@ function GeneradorEnergiaInversa() {
                         <input
                           className="gen1-table-input"
                           type="number"
-                          value={fila.y}
+                          data-review-target="native-tabla" value={fila.y}
                           placeholder=""
                           aria-label={`Tiempo para ${fila.x} reactores`}
                           onChange={(e) => actualizarFila(index, e.target.value)}
@@ -2221,7 +2027,7 @@ function GeneradorEnergiaInversa() {
           </section>
 
           {/* GRAFICA */}
-          <section className="gen1-card gen1-card-graph">
+          <section data-review-target="native-grafica" className="gen1-card gen1-card-graph">
             <h3 className="gen1-graph-title">Tiempo de recarga (horas)</h3>
 
             <div
@@ -2322,7 +2128,7 @@ function GeneradorEnergiaInversa() {
                 type="number"
                 placeholder="Escribe tu respuesta"
                 aria-label="Respuesta de predicción"
-                value={respuesta}
+                data-review-target="native-prediccion" value={respuesta}
                 onChange={(e) => setRespuesta(e.target.value)}
                 disabled={actividadCompletada}
               />
@@ -2341,16 +2147,7 @@ function GeneradorEnergiaInversa() {
               </div>
             </button>
 
-            <button
-              type="button"
-              className="gen1-btn-submit"
-              disabled={respuesta.trim() === "" || actividadCompletada || cargando}
-              onClick={handleEnviarPrediccion}
-              aria-label="Enviar respuesta"
-            >
-              <FiLock />
-              {cargando ? "Enviando..." : "Enviar respuesta"}
-            </button>
+            <p className="mn-finish-direction">Cuando completes los retos, usa «Terminar misión» al final de la actividad.</p>
 
             <div className="gen1-mission-box">
               <div>
@@ -2365,7 +2162,9 @@ function GeneradorEnergiaInversa() {
           </section>
         </div>
 
-        <footer className="gen1-bottom-bar">
+        <PilotEvidenceStatus pilot={pilot}/>
+<RetosDeMision expansion={mission}/><CierreDeMision onFinish={()=>void handleEnviarPrediccion()} busy={pilot.busy}/>
+<footer className="gen1-bottom-bar">
           <div className="gen1-bottom-progress">
             <span>Progreso de la actividad</span>
             <div className="gen1-progress-track">
@@ -2377,7 +2176,7 @@ function GeneradorEnergiaInversa() {
           <div className="gen1-bottom-reward">
             <span>Recompensa por completar</span>
             <strong>
-              <FaStar /> +60 XP
+              <FaStar /> Hasta 60 XP
             </strong>
             <strong>
               <FaGem /> +1

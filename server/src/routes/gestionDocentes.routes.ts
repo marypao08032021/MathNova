@@ -1,4 +1,4 @@
-﻿import { Router, Request, Response } from "express";
+import { Router, Request, Response } from "express";
 
 const bcrypt = require("bcryptjs");
 const pool = require("../db") as {
@@ -8,8 +8,11 @@ const pool = require("../db") as {
   }>;
 };
 
+import { verificarToken, permitirRoles } from "../middlewares/authMiddleware";
+import { timingSafeEqual } from "node:crypto";
 const router = Router();
-const CLAVE_ACCESO_DOCENTES = process.env.DOCENTE_ACCESS_PASSWORD || "1234";
+router.use(verificarToken, permitirRoles("admin", "docente"));
+
 
 function obtenerIniciales(nombre = "") {
   const partes = nombre.trim().split(/\s+/).filter(Boolean);
@@ -47,7 +50,11 @@ function obtenerClaveAcceso(body: any) {
 }
 
 function claveAccesoValida(body: any) {
-  return obtenerClaveAcceso(body) === CLAVE_ACCESO_DOCENTES;
+  const expected = process.env.DOCENTE_ACCESS_PASSWORD?.trim();
+  if (!expected) return false;
+  const supplied = Buffer.from(obtenerClaveAcceso(body));
+  const configured = Buffer.from(expected);
+  return supplied.length === configured.length && timingSafeEqual(supplied, configured);
 }
 
 function formatearFecha(fecha: unknown) {
@@ -226,10 +233,10 @@ router.post("/", async (req: Request, res: Response) => {
       });
     }
 
-    if (password.length < 4) {
+    if (password.length < 8 || Buffer.byteLength(password, "utf8") > 72) {
       return res.status(400).json({
         ok: false,
-        mensaje: "La contraseña debe tener mínimo 4 caracteres.",
+        mensaje: "La contraseña debe tener mínimo 8 caracteres y máximo 72 bytes.",
       });
     }
 
@@ -247,9 +254,9 @@ router.post("/", async (req: Request, res: Response) => {
     const resultado = await pool.query(
       `
       INSERT INTO public.registro
-        (nombre_completo, correo, usuario, password_hash, rol, estado, acepto_terminos)
+        (nombre_completo, correo, usuario, password_hash, rol, role_id, estado, acepto_terminos)
       VALUES
-        ($1, $2, $3, $4, 'docente', $5, true)
+        ($1, $2, $3, $4, 'docente', 1, $5, true)
       RETURNING id_usuario, nombre_completo, correo, usuario, rol, estado, fecha_registro
       `,
       [nombre, correo, usuario, passwordHash, estado],
@@ -330,10 +337,10 @@ router.put("/:idDocente", async (req: Request, res: Response) => {
       });
     }
 
-    if (password && password.length < 4) {
+    if (password && password.length < 8 || Buffer.byteLength(password, "utf8") > 72) {
       return res.status(400).json({
         ok: false,
-        mensaje: "La nueva contraseña debe tener mínimo 4 caracteres.",
+        mensaje: "La nueva contraseña debe tener mínimo 8 caracteres y máximo 72 bytes.",
       });
     }
 
@@ -360,7 +367,7 @@ router.put("/:idDocente", async (req: Request, res: Response) => {
           usuario = $3,
           password_hash = $4,
           estado = $5,
-          rol = 'docente',
+          rol = 'docente', role_id = 1,
           fecha_actualizacion = CURRENT_TIMESTAMP
         WHERE id_usuario = $6
           AND LOWER(COALESCE(rol, '')) = 'docente'
@@ -377,7 +384,7 @@ router.put("/:idDocente", async (req: Request, res: Response) => {
           correo = $2,
           usuario = $3,
           estado = $4,
-          rol = 'docente',
+          rol = 'docente', role_id = 1,
           fecha_actualizacion = CURRENT_TIMESTAMP
         WHERE id_usuario = $5
           AND LOWER(COALESCE(rol, '')) = 'docente'

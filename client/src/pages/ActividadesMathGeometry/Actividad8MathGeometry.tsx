@@ -1,3 +1,13 @@
+import useGeometryEvidence from "../../hooks/useGeometryEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import ContinuacionDeMision from "../../components/ContinuacionDeMision";
+import DetalleErroresDeMision from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useAutoProgreso } from "../../hooks/useAutoProgreso";
 
 import {
@@ -85,6 +95,7 @@ type Reto = {
   pregunta: string;
   opciones: Array<{ id: OpcionId; texto: string }>;
   correcta: OpcionId;
+  correctas?: OpcionId[];
 };
 
 import videoNova from "../../assets/mathGeometry/actividad8/nova_explicando_act_8_MathGeometry.mp4";
@@ -114,7 +125,7 @@ const RETOS: Reto[] = [
   {
     id: 1,
     imagen: reto1,
-    pregunta: "",
+    pregunta: "Selecciona la línea que une los vértices A y C.",
     opciones: [
       { id: "A", texto: "Línea amarilla" },
       { id: "B", texto: "Línea celeste" },
@@ -126,7 +137,7 @@ const RETOS: Reto[] = [
   {
     id: 2,
     imagen: reto2,
-    pregunta: "",
+    pregunta: "Selecciona la diagonal que une los vértices E y G.",
     opciones: [
       { id: "A", texto: "Línea roja" },
       { id: "B", texto: "Línea amarilla" },
@@ -138,7 +149,7 @@ const RETOS: Reto[] = [
   {
     id: 3,
     imagen: reto3,
-    pregunta: "",
+    pregunta: "Selecciona una diagonal del rombo: debe unir dos vértices opuestos.",
     opciones: [
       { id: "A", texto: "Línea verde" },
       { id: "B", texto: "Línea amarilla" },
@@ -146,11 +157,12 @@ const RETOS: Reto[] = [
       { id: "D", texto: "Punto central" },
     ],
     correcta: "B",
+    correctas: ["A", "B"],
   },
   {
     id: 4,
     imagen: reto4,
-    pregunta: "",
+    pregunta: "Selecciona un par de vértices opuestos que forme una diagonal.",
     opciones: [
       { id: "A", texto: "Vértices A y B" },
       { id: "B", texto: "Vértices A y C" },
@@ -158,11 +170,12 @@ const RETOS: Reto[] = [
       { id: "D", texto: "Vértices C y D" },
     ],
     correcta: "C",
+    correctas: ["B", "C"],
   },
   {
     id: 5,
     imagen: reto5,
-    pregunta: "",
+    pregunta: "Selecciona la diagonal que une los vértices B y D.",
     opciones: [
       { id: "A", texto: "Línea amarilla" },
       { id: "B", texto: "Línea roja" },
@@ -174,7 +187,7 @@ const RETOS: Reto[] = [
   {
     id: 6,
     imagen: reto6,
-    pregunta: "",
+    pregunta: "Selecciona una diagonal: sus dos extremos deben coincidir con vértices opuestos.",
     opciones: [
       { id: "A", texto: "Línea verde" },
       { id: "B", texto: "Línea morada" },
@@ -182,6 +195,7 @@ const RETOS: Reto[] = [
       { id: "D", texto: "Línea roja" },
     ],
     correcta: "D",
+    correctas: ["C", "D"],
   },
 ];
 
@@ -574,6 +588,7 @@ function VideoCanvasTransparente({
 }
 
 function Actividad8MathGeometry() {
+ const mission=useMissionExpansion("mathgeometry-actividad-8");
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -640,20 +655,22 @@ function Actividad8MathGeometry() {
   const pistaActiva = PISTAS_ACT8[pistaSeleccionada];
   const progreso = Math.round((completados / RETOS.length) * 100);
 
+  const pilot=useGeometryEvidence("mathgeometry-actividad-8",mission,()=>({
+      errores,
+      retos_completados: completados,
+    }));
+
   useAutoProgreso({
     completada: modal === "completado",
     codigo: "mathgeometry-actividad-8",
     mundo: "MathGeometry",
     tema: "Diagonales de cuadriláteros",
     titulo: "El Centro de Control",
-    aciertos: RETOS.length,
-    totalPreguntas: RETOS.length,
+    aciertos: RETOS.length + mission.correctCount,
+    totalPreguntas: mission.total,
     tiempoSegundos: segundos,
     xpBase: 240,
-    respuestas: {
-      errores,
-      retos_completados: RETOS.length,
-    },
+    respuestas: pilot.evidence(),
   });
 
   const tiempo = useMemo(() => {
@@ -1146,7 +1163,8 @@ function Actividad8MathGeometry() {
 
     if (retoCelebrado >= RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1248,8 +1266,9 @@ function Actividad8MathGeometry() {
 
   const comprobar = () => {
     if (!seleccion || pausado || aciertoEspecial !== null) return;
+    pilot.recordNative(retoActual,seleccion);
 
-    if (seleccion === reto.correcta) {
+    if ((reto.correctas ?? [reto.correcta]).includes(seleccion)) {
       setRevision("correcto");
 
       const configuracionAcierto = ACIERTOS_ESPECIALES_ACT8[retoActual];
@@ -1274,7 +1293,8 @@ function Actividad8MathGeometry() {
 
     if (retoActual === RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1284,6 +1304,8 @@ function Actividad8MathGeometry() {
   };
 
   const reiniciar = () => {
+    mission.reset();
+    pilot.resetSession();
     setRetoActual(0);
     setSeleccion(null);
     setRevision("pendiente");
@@ -1349,13 +1371,14 @@ function Actividad8MathGeometry() {
 
     setModalReproduciendo(false);
     setModal(null);
-    setSeleccion(null);
     setRevision("pendiente");
     setTextoSombra(TEXTO_INICIAL_SOMBRA);
     setIndiceSombraActivo(-1);
     setProgresoSombraActivo(0);
     setReinicioModal((valor) => valor + 1);
-  };
+  
+ mission.beginCorrection();
+};
 
   const videoModal =
     modal === "profesor"
@@ -1372,7 +1395,7 @@ function Actividad8MathGeometry() {
         : "Mensaje de Sombra";
 
   return (
-    <main className="act8geo-page">
+    <main className="act8geo-page mn-activity">
       <button
         type="button"
         className={`act8geo-hamburger-btn ${
@@ -1454,22 +1477,7 @@ function Actividad8MathGeometry() {
           </button>
         </nav>
 
-        <div className="act8geo-sidebar-progress-area">
-          <article className="act8geo-side-week-card">
-            <div className="act8geo-side-week-head">
-              <strong>Progreso semanal</strong>
-              <span>Nivel 3</span>
-            </div>
-
-            <div className="act8geo-side-progress">
-              <span>★</span>
-              <div>
-                <b style={{ width: "60%" }} />
-              </div>
-              <strong>60%</strong>
-            </div>
-          </article>
-        </div>
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathgeometry-actividad-8"].objective}</strong></div>
       </aside>
 
       <section className="act8geo-content">
@@ -1480,26 +1488,9 @@ function Actividad8MathGeometry() {
         />
 
         <section className="act8geo-main">
-          <div className="act8geo-breadcrumb">
-            <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
-              Mundos
-            </button>
+        <CabeceraCurricular curriculum={activityCurriculum["mathgeometry-actividad-8"]} />
+        
 
-            <span>›</span>
-
-            <button
-              type="button"
-              onClick={() => irARuta("/actividades/geometria")}
-            >
-              Actividades MathGeometry
-            </button>
-
-            <span>›</span>
-
-            <button type="button" className="act8geo-breadcrumb-current">
-              Act 8
-            </button>
-          </div>
 
           <header className="act8geo-topbar">
             <div className="act8geo-title-area">
@@ -1624,7 +1615,8 @@ function Actividad8MathGeometry() {
             </div>
           </section>
 
-          <div className="act8geo-layout">
+          <EnsayoOtrosMundos activityId="mathgeometry-actividad-8"/>
+<div className="act8geo-layout">
             <section className="act8geo-game-card">
               <div className="act8geo-laser-frame">
                 <img
@@ -1640,6 +1632,7 @@ function Actividad8MathGeometry() {
                 )}
               </div>
 
+              <h2>{reto.pregunta}</h2>
               <div
                 className="act8geo-options"
                 style={
@@ -1651,7 +1644,7 @@ function Actividad8MathGeometry() {
                 {reto.opciones.map((opcion, index) => {
                   const seleccionada = seleccion === opcion.id;
                   const correcta =
-                    revision === "correcto" && opcion.id === reto.correcta;
+                    revision === "correcto" && opcion.id === seleccion;
 
                   return (
                     <button
@@ -1776,6 +1769,8 @@ function Actividad8MathGeometry() {
               </article>
             </aside>
           </div>
+ 
+
 
           {/* Barra inferior de resultados, adaptada de la Actividad 5. */}
           <section className="act8geo-bottom-stats">
@@ -1813,7 +1808,9 @@ function Actividad8MathGeometry() {
               </div>
             </article>
           </section>
-        </section>
+        <PilotEvidenceStatus pilot={pilot}/>
+        <ContinuacionDeMision expansion={mission} onComplete={()=>{setModal("completado");}} onRestart={reiniciar}/>
+</section>
 
         <footer className="act8geo-footer">
           <div className="act8geo-footer-icons">
@@ -1978,7 +1975,7 @@ function Actividad8MathGeometry() {
               />
             )}
 
-            <div className="act8geo-modal-content">
+            <div className="act8geo-modal-content"><AudioRetroalimentacion/>
               <span className="act8geo-modal-badge">
                 <FiVolume2 />
                 {modal === "profesor"
@@ -2161,6 +2158,8 @@ function Actividad8MathGeometry() {
 
               {modal === "sombra" && (
                 <div className="act8geo-modal-script-lines act8geo-sombra-script-lines">
+ <DetalleErroresDeMision items={[...(RETOS.map((r,i)=>({id:`native-${i}`,title:i===retoActual?reto.pregunta:`Reto geométrico ${i+1}`,answer:i===retoActual?(reto.opciones.find(o=>o.id===seleccion)?.texto||"Sin respuesta"):i<completados?"Validado en la misión":"",correct:i<completados?true:i===retoActual?Boolean(seleccion && (reto.correctas ?? [reto.correcta]).includes(seleccion)):null,hint:i===retoActual?`Revisa la propiedad indicada en el reto. Opciones válidas: ${reto.opciones.filter(o=>(reto.correctas ?? [reto.correcta]).includes(o.id)).map(o=>o.texto).join(" o ")}. Consulta la pista para justificarla.`:"Puedes consultar la pista del personaje cuando llegues a este reto.",target:".act8geo-layout"})).filter((_,i)=>i<=retoActual)),...mission.items]} onCorrect={(item)=>{setModal(null); setRevision("pendiente"); audioSombraRef.current?.pause(); mission.beginCorrection(item);}} onRestart={reiniciar}/>
+
                   {GUION_SOMBRA_ERROR.map((linea, indice) => (
                     <p
                       key={linea}
@@ -2248,7 +2247,7 @@ function Actividad8MathGeometry() {
               }}
             />
 
-            <div className="act8geo-complete-content">
+            <div className="act8geo-complete-content"><AudioRetroalimentacion/>
               <span>🏆 Centro de Control activado</span>
               <h2>¡Centro de Control activado!</h2>
 
@@ -2290,7 +2289,7 @@ function Actividad8MathGeometry() {
                 <article>
                   <FiCheck />
                   <span>Retos</span>
-                  <strong>6/6</strong>
+                  <strong>{mission.total}/{mission.total}</strong>
                 </article>
                 <article>
                   <FiTarget />

@@ -1,3 +1,7 @@
+import AulaNotice from "../../components/AulaNotice";
+import useAulaAccess from "../../hooks/useAulaAccess";
+import {obtenerProgresoAlumno} from "../../services/progresoService";
+import missionCatalog from "../../pedagogy/missionLearning.json";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSessionUser } from "../../utils/authSession";
@@ -144,6 +148,8 @@ const normalizar = (texto: string) =>
     .replace(/[\u0300-\u036f]/g, "");
 
 function ActividadesMathData() {
+  const aula=useAulaAccess();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -151,15 +157,8 @@ function ActividadesMathData() {
   const usuarioSesion = getSessionUser();
   const ID_ESTUDIANTE = usuarioSesion?.id_usuario;
 
-  // completadas[0] = Generador de Energía, [1] = Rampas, [2] = Tripulación, [3] = Holograma
-  // Un usuario nuevo siempre arranca en "false" en las 4 posiciones, así que
-  // solo la actividad 1 queda desbloqueada hasta que resuelva cada una.
-  const [completadas, setCompletadas] = useState<boolean[]>([
-    false,
-    false,
-    false,
-    false,
-  ]);
+  // Las ocho misiones empiezan pendientes; la primera está disponible.
+  const [completadas,setCompletadas]=useState<boolean[]>(ACTIVIDADES.map(()=>false));
 
   // Guarda por separado qué actividades ya llegaron a desbloquear la
   // siguiente. Este progreso es acumulativo: si el alumno repite una actividad
@@ -225,21 +224,23 @@ function ActividadesMathData() {
 
     const cargarEstado = async () => {
       try {
-        const response = await fetch(
-          `${API_URL}/progreso-general/${ID_ESTUDIANTE}`
-        );
+        const [legacy,unified] = await Promise.allSettled([
+          fetch(`${API_URL}/progreso-general/${ID_ESTUDIANTE}`).then(async response=>response.ok?response.json():null),
+          obtenerProgresoAlumno(Number(ID_ESTUDIANTE)),
+        ]);
+        const data=legacy.status==="fulfilled"&&legacy.value?legacy.value:{success:true,data:{}};
+        const records=unified.status==="fulfilled"&&unified.value.ok?unified.value.progreso:[];
 
-        if (!response.ok) return;
-
-        const data = await response.json();
-
-        if (!cancelado && data.success && data.data) {
-          const reportadasPorBackend = [
-            Boolean(data.data.proporcionalidad),
-            Boolean(data.data.rampas),
-            Boolean(data.data.tripulacion),
-            Boolean(data.data.holograma),
-          ];
+        if (!cancelado && ((data.success && data.data) || records.length>0)) {
+          const legacyData=data.data||{};
+          const codes=["mathdata-generador-energia","mathdata-rampas-lanzamiento","mathdata-encuesta-tripulacion","mathdata-holograma-reportes","mathdata-sensor-frecuencias","mathdata-nucleo-decisiones","mathdata-oraculo-estacion","mathdata-sala-tres-caminos"] as const;
+          const original=[Boolean(legacyData.proporcionalidad),Boolean(legacyData.rampas),Boolean(legacyData.tripulacion),Boolean(legacyData.holograma)];
+          const reportadasPorBackend=codes.map((code,index)=>{
+            const record=records.find(item=>item.actividad_codigo===code);
+            const evidence=record?.respuestas as {mission_expansion?:{version?:string}}|undefined;
+            if(evidence?.mission_expansion?.version==="mission-v2")return record?.completada===true && Number(record.total_preguntas)>=missionCatalog[code].totalCount;
+            return original[index]??false;
+          });
 
           setCompletadas(reportadasPorBackend);
 
@@ -319,19 +320,9 @@ function ActividadesMathData() {
   // porque todavía no tenían backend propio — ese era justamente el bug:
   // un usuario nuevo veía esas 4 actividades abiertas sin haber completado
   // nada. Ahora el candado es 100% secuencial para las 8 actividades.
-  // Nota: como el backend (progreso-general) hoy solo regresa el estado de
-  // las actividades 1 a 4, "completadas" solo tiene 4 posiciones; para los
-  // índices 4 en adelante completadas[index-1] es "undefined", lo cual se
-  // evalúa como false y las mantiene bloqueadas hasta que el backend
-  // también reporte su avance (se resuelve solo agregando esos campos ahí).
-  const estaDesbloqueada = (index: number) => {
-    if (index === 0) return true;
-    return Boolean(
-      completadas[index - 1] ||
-        desbloqueosConservados[index - 1] ||
-        iniciadas[index]
-    );
-  };
+  // El progreso unificado informa las ocho misiones ampliadas. Los
+  // desbloqueos históricos se conservan al repetir una actividad.
+  const estaDesbloqueada = (index:number) => aula.actividades.some(a=>a.ruta===ACTIVIDADES[index].ruta && a.permitida);
 
   const obtenerEstado = (index: number): EstadoActividad => {
     if (completadas[index]) return "completada";
@@ -442,7 +433,7 @@ function ActividadesMathData() {
           onClick={() => setMostrarAyuda(false)}
         >
           <div
-            className="mathdatax-modal-mundo"
+            className="mathdatax-modal-mundo" role="dialog" aria-modal="true" aria-label="Bienvenido a MathData"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -467,8 +458,8 @@ function ActividadesMathData() {
 
               <p>
                 Aquí vas a explorar tablas, gráficas y probabilidad resolviendo
-                retos interactivos, uno por uno vas a desbloquear el
-                siguiente. ¿Listo para la misión?
+                retos interactivos. Tu docente habilitará las misiones
+                que trabajarás en clase. ¿Listo para la misión?
               </p>
 
               <button
@@ -575,6 +566,7 @@ function ActividadesMathData() {
         <img src={heroBanner} alt="Banner Math Data" className="mathdatax-bg" />
 
         <section className="mathdatax-main">
+          <AulaNotice aula={aula} mundo="mathdata"/>
           <div className="mathdatax-header">
             <div className="mathdatax-title-box">
               <h1>Actividades de Math Data</h1>

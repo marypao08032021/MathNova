@@ -22,8 +22,7 @@ Teacher.belongsTo(User, { foreignKey: 'id_usuario' });
 User.hasOne(Admin, { foreignKey: 'id_usuario' });
 Admin.belongsTo(User, { foreignKey: 'id_usuario' });
 
-User.hasMany(ProporcionalidadInversa, { foreignKey: 'id_estudiante' });
-ProporcionalidadInversa.belongsTo(User, { foreignKey: 'id_estudiante' });
+// La actividad referencia registro, no usuario. No redefinir esa FK con User.
 
 export {
   sequelize,
@@ -42,14 +41,8 @@ export {
   ActividadOraculo,
 };
 
-export const initDb = async (force = false) => {
-  try {
-    await sequelize.authenticate();
-    console.log('✅ Connection to database has been established successfully.');
-    
-    await sequelize.sync({ force });
-    console.log('✅ Database models synchronized successfully.');
-  } catch (error) {
-    console.error('❌ Unable to connect/sync to the database:', error);
-  }
+export const initDb = async (force = false): Promise<void> => {
+  if (force) throw new Error('No se permite recrear tablas durante el arranque de la base recuperada.');
+  await sequelize.authenticate();
+  console.log('Conexión PostgreSQL verificada. El esquema recuperado no se sincroniza automáticamente.');
 };

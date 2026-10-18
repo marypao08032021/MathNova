@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
 const pool = require("../db");
+const pilotService = require("../services/pilotService");
 
 type ProgresoActividadBody = {
   id_usuario?: number | string;
@@ -297,7 +298,7 @@ const consultarMetasSemanales = async (
       $2::date::text AS inicio_semana,
       ($2::date + 6)::date::text AS fin_semana,
 
-      COUNT(DISTINCT actividad_codigo) FILTER (
+      COUNT(DISTINCT regexp_replace(actividad_codigo, '-(refuerzo-)?pda-v1$', '')) FILTER (
         WHERE completada = TRUE
       )::int AS lecciones_completadas,
 
@@ -502,6 +503,15 @@ export const guardarProgresoActividad = async (
   const client = await pool.connect();
 
   try {
+    let piloto: any = null;
+    const pilotCode=require("../services/aulaService").codigo(req.body.actividad_codigo);
+    if (pilotService.catalog[pilotCode]) {
+      req.body.actividad_codigo=pilotCode;
+      try { piloto = pilotService.prepare(req.body, "cierre"); }
+      catch (e: any) { return res.status(e.status || 400).json({ok:false,mensaje:e.message}); }
+      req.body.aciertos=piloto.evaluation.aciertos;req.body.total_preguntas=piloto.evaluation.total;
+      req.body.xp_base=piloto.c.xp;req.body.completada=piloto.evaluation.completada;
+    }
     const {
       id_usuario,
       mundo,
@@ -526,7 +536,7 @@ export const guardarProgresoActividad = async (
       0,
       Number(tiempo_segundos || 0)
     );
-    const xpBaseNum = Math.max(0, Number(xp_base || 50));
+    const xpBaseNum = actividad_codigo?.endsWith("-refuerzo-pda-v1") ? 0 : Math.max(0, Number(xp_base || 50));
 
     if (
       !Number.isInteger(idUsuarioNum) ||
@@ -551,12 +561,12 @@ export const guardarProgresoActividad = async (
           )
         : 0;
 
-    const estrellas = calcularEstrellas(
+    const estrellas = actividad_codigo.endsWith("-refuerzo-pda-v1") ? 0 : calcularEstrellas(
       aciertosNum,
       totalPreguntasNum
     );
 
-    const completada =
+    const completada = actividad_codigo.endsWith("-refuerzo-pda-v1") ? false :
       typeof completadaRecibida === "boolean"
         ? completadaRecibida
         : totalPreguntasNum > 0;
@@ -566,7 +576,39 @@ export const guardarProgresoActividad = async (
     );
 
     await client.query("BEGIN");
+    if (piloto) {
+      const registrado=await pilotService.begin(client,idUsuarioNum,piloto);
+      if(registrado.duplicate) { await client.query("COMMIT");return res.status(200).json(registrado.duplicate.recibo); }
+    }
     await asegurarTablasMetas(client);
+
+    // Conserva la evidencia previa incluso si se inicia desde otro navegador.
+    let evidenceForSave = respuestas;
+    const evidence = respuestas as Record<string, unknown> | undefined;
+    const latest = evidence?.latest_attempt as Record<string, unknown> | undefined;
+    const attemptId = latest?.attemptId;
+    if (actividad_codigo.endsWith("-refuerzo-pda-v1") && typeof attemptId === "string" && /^[a-zA-Z0-9-]{16,80}$/.test(attemptId)) {
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1))", [`${idUsuarioNum}:${actividad_codigo.trim()}`]);
+      const prior = await client.query(`SELECT * FROM public.actividad_progreso
+        WHERE id_usuario=$1 AND actividad_codigo=$2 FOR UPDATE`,
+        [idUsuarioNum, actividad_codigo.trim()]);
+      const previous = prior.rows[0]?.respuestas as Record<string, unknown> | undefined;
+      const previousHistory = Array.isArray(previous?.attempts) ? previous.attempts as Record<string, unknown>[] : [];
+      const previousLatest = previous?.latest_attempt as Record<string, unknown> | undefined;
+      if (previousLatest?.attemptId === attemptId || previousHistory.some(a => a.attemptId === attemptId)) {
+        await client.query("COMMIT");
+        return res.json({ ok: true, mensaje: "Evidencia ya registrada.", progreso: prior.rows[0] });
+      }
+      const previousNumber = Number(previousLatest?.attemptNumber || 0);
+      const current = { ...latest, attemptId, attemptNumber: Math.max(previousNumber + 1, Number(latest?.attemptNumber) || 1), assisted: Boolean(previousLatest || latest?.assisted) };
+      const incomingHistory = Array.isArray(evidence?.attempts) ? evidence.attempts as Record<string, unknown>[] : [];
+      const merged = [...previousHistory, ...incomingHistory.filter(a => a.attemptId !== attemptId), current];
+      const unique = merged.filter((a, index, all) => !a.attemptId || all.findIndex(b => b.attemptId === a.attemptId) === index);
+      const first = previous?.first_attempt ?? evidence?.first_attempt ?? current;
+      const firstId = (first as Record<string, unknown>)?.attemptId;
+      const history = [first, ...unique.filter(a => a.attemptId !== firstId).slice(-9)];
+      evidenceForSave = { ...evidence, first_attempt: first, latest_attempt: current, attempts: history, attempt_count: current.attemptNumber, assistance_after_feedback: current.assisted };
+    }
 
     /**
      * Primero registramos el intento individual. Esta fila es la que
@@ -646,16 +688,28 @@ export const guardarProgresoActividad = async (
         actividad_titulo = EXCLUDED.actividad_titulo,
 
         respuestas = CASE
-          WHEN EXCLUDED.precision >= COALESCE(
+          WHEN (EXCLUDED.respuestas->'mission_expansion'->>'version' = 'mission-v2' AND COALESCE(progreso_actual.respuestas->'mission_expansion'->>'version', '') <> 'mission-v2') OR EXCLUDED.actividad_codigo LIKE '%-refuerzo-pda-v1' OR EXCLUDED.precision >= COALESCE(
             progreso_actual.precision,
             0
           )
-          THEN EXCLUDED.respuestas
+          THEN CASE WHEN EXCLUDED.respuestas->'mission_expansion'->>'version' = 'mission-v2'
+            THEN EXCLUDED.respuestas || CASE
+              WHEN COALESCE(progreso_actual.respuestas->'mission_expansion'->>'version', '') <> 'mission-v2'
+              THEN jsonb_build_object('previous_mission', jsonb_build_object(
+                'respuestas', progreso_actual.respuestas,
+                'aciertos', progreso_actual.aciertos,
+                'total_preguntas', progreso_actual.total_preguntas,
+                'precision', progreso_actual.precision,
+                'completada', progreso_actual.completada))
+              WHEN progreso_actual.respuestas ? 'previous_mission'
+              THEN jsonb_build_object('previous_mission', progreso_actual.respuestas->'previous_mission')
+              ELSE '{}'::jsonb END
+            ELSE EXCLUDED.respuestas END
           ELSE progreso_actual.respuestas
         END,
 
         aciertos = CASE
-          WHEN EXCLUDED.precision >= COALESCE(
+          WHEN (EXCLUDED.respuestas->'mission_expansion'->>'version' = 'mission-v2' AND COALESCE(progreso_actual.respuestas->'mission_expansion'->>'version', '') <> 'mission-v2') OR EXCLUDED.actividad_codigo LIKE '%-refuerzo-pda-v1' OR EXCLUDED.precision >= COALESCE(
             progreso_actual.precision,
             0
           )
@@ -664,7 +718,7 @@ export const guardarProgresoActividad = async (
         END,
 
         total_preguntas = CASE
-          WHEN EXCLUDED.precision >= COALESCE(
+          WHEN (EXCLUDED.respuestas->'mission_expansion'->>'version' = 'mission-v2' AND COALESCE(progreso_actual.respuestas->'mission_expansion'->>'version', '') <> 'mission-v2') OR EXCLUDED.actividad_codigo LIKE '%-refuerzo-pda-v1' OR EXCLUDED.precision >= COALESCE(
             progreso_actual.precision,
             0
           )
@@ -672,10 +726,10 @@ export const guardarProgresoActividad = async (
           ELSE progreso_actual.total_preguntas
         END,
 
-        precision = GREATEST(
+        precision = CASE WHEN (EXCLUDED.respuestas->'mission_expansion'->>'version' = 'mission-v2' AND COALESCE(progreso_actual.respuestas->'mission_expansion'->>'version', '') <> 'mission-v2') OR EXCLUDED.actividad_codigo LIKE '%-refuerzo-pda-v1' THEN EXCLUDED.precision ELSE GREATEST(
           COALESCE(progreso_actual.precision, 0),
           EXCLUDED.precision
-        ),
+        ) END,
 
         estrellas_obtenidas = GREATEST(
           COALESCE(progreso_actual.estrellas_obtenidas, 0),
@@ -687,9 +741,9 @@ export const guardarProgresoActividad = async (
           EXCLUDED.xp_obtenido
         ),
 
-        completada =
+        completada = CASE WHEN (EXCLUDED.respuestas->'mission_expansion'->>'version' = 'mission-v2' AND COALESCE(progreso_actual.respuestas->'mission_expansion'->>'version', '') <> 'mission-v2') THEN EXCLUDED.completada ELSE
           COALESCE(progreso_actual.completada, FALSE)
-          OR EXCLUDED.completada,
+          OR EXCLUDED.completada END,
 
         intentos =
           COALESCE(progreso_actual.intentos, 0) + 1,
@@ -708,7 +762,7 @@ export const guardarProgresoActividad = async (
         tema?.trim() || null,
         actividad_codigo.trim(),
         actividad_titulo.trim(),
-        JSON.stringify(respuestas ?? {}),
+        JSON.stringify(evidenceForSave ?? {}),
         aciertosNum,
         totalPreguntasNum,
         precision,
@@ -736,6 +790,8 @@ export const guardarProgresoActividad = async (
       metasSemanales.inicio_semana
     );
 
+    const receipt={ok:true,mensaje:"Progreso guardado correctamente.",progreso:result.rows[0],metas_semanales:construirRespuestaMetas(metasSemanales,recompensas),recompensas_nuevas:recompensasNuevas,...(piloto?{intento_piloto:{id:piloto.p.id,evaluacion:piloto.evaluation,tiempo_segundos:tiempoSegundosNum,xp_obtenido:xpObtenido,estrellas_obtenidas:estrellas}}:{})};
+    if(piloto)await client.query('UPDATE public.mathnova_intentos_piloto SET recibo=$1::jsonb WHERE id=$2',[JSON.stringify(receipt),piloto.p.id]);
     await client.query("COMMIT");
 
     console.log("PROGRESO GUARDADO:", {
@@ -747,16 +803,7 @@ export const guardarProgresoActividad = async (
       recompensas_nuevas: recompensasNuevas,
     });
 
-    return res.status(200).json({
-      ok: true,
-      mensaje: "Progreso guardado correctamente.",
-      progreso: result.rows[0],
-      metas_semanales: construirRespuestaMetas(
-        metasSemanales,
-        recompensas
-      ),
-      recompensas_nuevas: recompensasNuevas,
-    });
+    return res.status(200).json(receipt);
   } catch (error: unknown) {
     await client.query("ROLLBACK");
 
@@ -765,9 +812,9 @@ export const guardarProgresoActividad = async (
 
     console.error("Error al guardar progreso:", error);
 
-    return res.status(500).json({
+    return res.status((error as {status?:number})?.status || 500).json({
       ok: false,
-      mensaje: "Error al guardar progreso de la actividad.",
+      mensaje: (error as {status?:number;message?:string})?.status ? (error as Error).message : "Error al guardar progreso de la actividad.",
       detalle:
         process.env.NODE_ENV === "development"
           ? detalle
@@ -879,13 +926,13 @@ export const obtenerResumenAlumno = async (
         )::int AS xp_total,
 
         COUNT(*) FILTER (
-          WHERE completada = TRUE
+          WHERE completada = TRUE AND actividad_codigo NOT LIKE '%-pda-v1'
         )::int AS actividades_completadas,
 
-        COUNT(*)::int AS actividades_intentadas,
+        COUNT(*) FILTER (WHERE actividad_codigo NOT LIKE '%-pda-v1')::int AS actividades_intentadas,
 
         COALESCE(
-          ROUND(AVG(precision), 2),
+          ROUND(AVG(precision) FILTER (WHERE actividad_codigo NOT LIKE '%-pda-v1'), 2),
           0
         )::float AS precision_promedio,
 
@@ -916,10 +963,10 @@ export const obtenerResumenAlumno = async (
         mundo,
 
         COUNT(*) FILTER (
-          WHERE completada = TRUE
+          WHERE completada = TRUE AND actividad_codigo NOT LIKE '%-pda-v1'
         )::int AS completadas,
 
-        COUNT(*)::int AS intentadas,
+        COUNT(*) FILTER (WHERE actividad_codigo NOT LIKE '%-pda-v1')::int AS intentadas,
 
         COALESCE(
           SUM(estrellas_obtenidas),
@@ -932,7 +979,7 @@ export const obtenerResumenAlumno = async (
         )::int AS xp,
 
         COALESCE(
-          ROUND(AVG(precision), 2),
+          ROUND(AVG(precision) FILTER (WHERE actividad_codigo NOT LIKE '%-pda-v1'), 2),
           0
         )::float AS precision
 

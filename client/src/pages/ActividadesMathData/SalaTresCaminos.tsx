@@ -1,4 +1,15 @@
-import { useState, useRef } from "react";
+import useMathDataEvidence from "../../hooks/useMathDataEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import CierreDeMision from "../../components/CierreDeMision";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import RetosDeMision from "../../components/RetosDeMision";
+import DetalleErroresDeMision, {type MissionReviewItem} from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
+import { useState, useRef, useEffect } from "react";
 import type { DragEvent } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
@@ -477,7 +488,11 @@ function CartaIcono({ color, forma, atenuada = false }: { color: ColorCarta; for
 ========================================================= */
 
 export default function SalaTresCaminos() {
+ const mission=useMissionExpansion("mathdata-sala-tres-caminos");
   const navigate = useNavigate();
+ const [missionNotice,setMissionNotice]=useState("");
+ const missionClock=useRef(Date.now());
+ const missionSaving=useRef(false);
 
   /* ---- Retos 1 a 3: clasificación + justificación ---- */
   const [clasificacion, setClasificacion] = useState<Record<string, TipoEvento | null>>({
@@ -524,16 +539,19 @@ export default function SalaTresCaminos() {
   };
 
   const seleccionarClasificacion = (retoId: string, tipo: TipoEvento) => {
+ if(mission.correctOnly && retoCorrecto(retoId))return;
     setClasificacion((prev) => ({ ...prev, [retoId]: tipo }));
     setRetoVerificado((prev) => ({ ...prev, [retoId]: false }));
   };
 
   const seleccionarJustificacion = (retoId: string, id: JustificacionId) => {
+ if(mission.correctOnly && retoCorrecto(retoId))return;
     setJustificacion((prev) => ({ ...prev, [retoId]: id }));
     setRetoVerificado((prev) => ({ ...prev, [retoId]: false }));
   };
 
   const verificarReto = (retoId: string) => {
+    pilot.recordAll();
     setRetoVerificado((prev) => ({ ...prev, [retoId]: true }));
   };
 
@@ -550,6 +568,7 @@ export default function SalaTresCaminos() {
 
   const manejarDropSlot = (retoId: string) => (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
+    if(mission.correctOnly && registroEsCorrecto)return;
     const tipo = dragTipoRef.current;
     setSlotSobre(null);
     if (!tipo) return;
@@ -567,28 +586,30 @@ export default function SalaTresCaminos() {
   };
 
   const limpiarSlot = (retoId: string) => {
+ if(mission.correctOnly && registroEsCorrecto)return;
     setAsignacion((prev) => ({ ...prev, [retoId]: null }));
     setRegistroVerificado(false);
   };
 
-  const verificarRegistro = () => setRegistroVerificado(true);
+  const verificarRegistro = () => {pilot.recordAll();setRegistroVerificado(true);};
 
   const registroEsCorrecto = RETOS.every((r) => asignacion[r.id] === r.tipoCorrecto);
 
   /* ---- Envío final: abrir la puerta ---- */
-  const handleAbrirPuerta = () => {
-    if (!puertaFinal) return;
+  const pilot=useMathDataEvidence("mathdata-sala-tres-caminos",mission,()=>({clasificacion,justificacion,asignacion,puerta_final:puertaFinal}));
+  useEffect(()=>{const attempt=pilot.receipt?.intento_piloto;if(!attempt)return;
+    setResultado(attempt.evaluacion.completada?"exito":"fallo");
+  },[pilot.receipt]);
 
-    setRetoVerificado({ reto1: true, reto2: true, reto3: true });
-    setRegistroVerificado(true);
-
-    const todoCorrecto =
-      RETOS.every((r) => retoCorrecto(r.id)) && registroEsCorrecto && puertaFinal === PUERTA_SEGURA;
-
-    setResultado(todoCorrecto ? "exito" : "fallo");
+  const handleAbrirPuerta = async () => {
+    if(pilot.busy)return;
+    try {await pilot.finish(Math.max(1,Math.floor((Date.now()-missionClock.current)/1000)),50);}
+    catch(error){setMissionNotice(error instanceof Error?error.message:"No se pudo guardar; conserva esta pestaña.");}
   };
 
   const handleReiniciarActividad = () => {
+ mission.reset();
+ pilot.resetSession();
     setClasificacion({ reto1: null, reto2: null, reto3: null });
     setJustificacion({ reto1: "", reto2: "", reto3: "" });
     setRetoVerificado({ reto1: false, reto2: false, reto3: false });
@@ -600,24 +621,27 @@ export default function SalaTresCaminos() {
   };
 
   /* ---- Resumen para las pantallas de resultado ---- */
-  const aciertos = [
+  const aciertos = pilot.evaluation?.aciertos ?? ([
     retoCorrecto("reto1"),
     retoCorrecto("reto2"),
     retoCorrecto("reto3"),
     registroEsCorrecto,
     puertaFinal === PUERTA_SEGURA,
-  ].filter(Boolean).length;
-  const totalPasos = 5;
+  ].filter(Boolean).length + mission.correctCount);
+  const totalPasos = mission.total;
   const precision = Math.round((aciertos / totalPasos) * 100);
-  const puntosGanados = resultado === "exito" ? 50 : 10;
+  const puntosGanados = pilot.receipt?.intento_piloto?.xp_obtenido ?? (resultado === "exito" ? 50 : 10);
 
   // ==========================================
   // VENTANA EMERGENTE: ACTIVIDAD COMPLETADA
   // ==========================================
 
-  if (resultado === "exito") return (
+  
+ const missionNativeItems:MissionReviewItem[]=[{id:"reto1",title:"Clasificación y justificación 1",answer:String(`${clasificacion.reto1}, ${justificacion.reto1}`),correct:retoCorrecto("reto1"),hint:"Revisa si ambos eventos pueden ocurrir y si uno modifica al otro.",target:'[data-review-target="native-reto1"]'},{id:"reto2",title:"Clasificación y justificación 2",answer:String(`${clasificacion.reto2}, ${justificacion.reto2}`),correct:retoCorrecto("reto2"),hint:"Compara las posibilidades antes y después del primer evento.",target:'[data-review-target="native-reto2"]'},{id:"reto3",title:"Clasificación y justificación 3",answer:String(`${clasificacion.reto3}, ${justificacion.reto3}`),correct:retoCorrecto("reto3"),hint:"Decide si pueden ocurrir juntos; justifica tu clasificación.",target:'[data-review-target="native-reto3"]'},{id:"registro",title:"Registro de mecanismos",answer:String(JSON.stringify(asignacion)),correct:registroEsCorrecto,hint:"Cada mecanismo debe quedar en su categoría correcta.",target:'[data-review-target="native-registro"]'},{id:"puerta",title:"Puerta segura",answer:String(puertaFinal),correct:puertaFinal===PUERTA_SEGURA,hint:"Relaciona los mecanismos clasificados con la puerta segura.",target:'[data-review-target="native-puerta"]'}];
+ const resumeMission=(item?:MissionReviewItem)=>{setResultado(null);mission.beginCorrection(item);};
+if (resultado === "exito") return (
     <div className="res-modal-overlay">
-      <div className="res-modal-card res-modal-exito res-modal-wide">
+      <div className="res-modal-card res-modal-exito res-modal-wide" role="dialog" aria-modal="true" aria-label="Misión completada">
         <div className="res-confetti" aria-hidden="true">
           {Array.from({ length: 16 }).map((_, i) => (
             <span key={i} className={`res-confetti-dot res-confetti-dot-${i % 6}`} />
@@ -668,7 +692,7 @@ export default function SalaTresCaminos() {
           />
         </div>
 
-        <div className="res-modal-body">
+        <AudioRetroalimentacion/><div className="res-modal-body">
           <div className="res-modal-left">
             <div className="res-resumen-card">
               <div className="res-resumen-header">
@@ -699,9 +723,9 @@ export default function SalaTresCaminos() {
                 <div className="res-stat-sep" />
                 <div className="res-stat">
                   <img src={iconoRecompensa} alt="" className="res-stat-img" />
-                  <strong className="res-pts-naranja">+{puntosGanados} pts</strong>
+                  <strong className="res-pts-naranja">{puntosGanados} XP</strong>
                   <small>Recompensa</small>
-                  <em>Puntos ganados</em>
+                  <em>XP del intento</em>
                 </div>
                 <div className="res-stat-sep" />
                 <div className="res-stat">
@@ -750,7 +774,7 @@ export default function SalaTresCaminos() {
 
   if (resultado === "fallo") return (
     <div className="res-modal-overlay">
-      <div className="res-modal-card res-modal-fallo res-modal-wide">
+      <div className="res-modal-card res-modal-fallo res-modal-wide" role="dialog" aria-modal="true" aria-label="Revisa tus respuestas">
         <div className="res-titulo-row">
           <div className="res-icono-retry">&#x1F504;</div>
           <div>
@@ -789,7 +813,7 @@ export default function SalaTresCaminos() {
           <img src={villanoIntentar} alt="Villano retando" className="res-villano-img" />
         </div>
 
-        <div className="res-modal-body">
+        <AudioRetroalimentacion/><div className="res-modal-body"><DetalleErroresDeMision items={pilot.reviewItems([...missionNativeItems,...mission.items])} onCorrect={resumeMission} onRestart={handleReiniciarActividad}/>
           <div className="res-modal-left">
             <div className="res-resumen-card">
               <div className="res-resumen-header">
@@ -820,9 +844,9 @@ export default function SalaTresCaminos() {
                 <div className="res-stat-sep" />
                 <div className="res-stat">
                   <img src={iconoRecompensa} alt="" className="res-stat-img" />
-                  <strong className="res-pts-azul">+{puntosGanados} pts</strong>
+                  <strong className="res-pts-azul">{puntosGanados} XP</strong>
                   <small>Recompensa</small>
-                  <em>Puntos ganados</em>
+                  <em>XP del intento</em>
                 </div>
                 <div className="res-stat-sep" />
                 <div className="res-stat">
@@ -836,8 +860,8 @@ export default function SalaTresCaminos() {
           </div>
 
           <div className="res-modal-right">
-            <button className="res-btn res-btn-azul" onClick={handleReiniciarActividad}>
-              Intentar de nuevo
+            <button className="res-btn res-btn-azul" onClick={()=>resumeMission(missionNativeItems.find(item=>item.correct===false))}>
+              Corregir errores
             </button>
             <button className="res-btn res-btn-outline" onClick={() => setMostrarPistaBait(true)}>
               Ver pista
@@ -880,7 +904,7 @@ export default function SalaTresCaminos() {
   // ==========================================
 
   return (
-    <div className="sal-page">
+    <div className="sal-page mn-activity">
       {/* ================= SIDEBAR ================= */}
       <aside className="sal-sidebar">
         <img src={logo} alt="MathNova" className="sal-logo-img" />
@@ -918,19 +942,12 @@ export default function SalaTresCaminos() {
           />
         </div>
 
-        <div className="sal-progreso-card">
-          <small>Progreso de la actividad</small>
-          <div className="sal-progreso-track">
-            <div className="sal-progreso-fill" style={{ width: "88%" }} />
-          </div>
-          <small>7/8 actividad</small>
-        </div>
+        
 
-        <div className="sal-xp-card">
-          <small>XP acumulados</small>
-          <strong>180 XP ⭐</strong>
-        </div>
-      </aside>
+        
+      
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathdata-sala-tres-caminos"].objective}</strong></div>
+</aside>
 
       {/* ================= CONTENIDO ================= */}
       <main
@@ -940,13 +957,14 @@ export default function SalaTresCaminos() {
         }}
       >
         <header className="sal-header">
-          <button className="sal-volver" type="button" onClick={() => navigate("/actividades-math-data")}>
-            <FiArrowLeft /> Volver al tema
-          </button>
+          
           <button type="button" className="sal-ayuda-btn" aria-label="Ayuda">
             <FiHelpCircle />
           </button>
         </header>
+        <CabeceraCurricular curriculum={activityCurriculum["mathdata-sala-tres-caminos"]} />
+        <EnsayoOtrosMundos activityId="mathdata-sala-tres-caminos"/>
+
 
         {/* TÍTULO */}
         <div className="sal-titulo-bloque">
@@ -1042,7 +1060,7 @@ export default function SalaTresCaminos() {
         {/* RETOS 1 A 3 */}
         <div className="sal-retos-row">
           {RETOS.map((reto) => (
-            <div className="sal-reto-card" key={reto.id}>
+            <div data-review-target={`native-${reto.id}`} className="sal-reto-card" key={reto.id}>
               <div className="sal-reto-header">
                 <span className="sal-reto-num">{reto.numero}</span>
                 <strong>{reto.titulo}</strong>
@@ -1169,7 +1187,7 @@ export default function SalaTresCaminos() {
 
         {/* PASO 4: REGISTRO Y RUTA SEGURA */}
         <div className="sal-registro-row">
-          <div className="sal-registro-card">
+          <div data-review-target="native-registro" className="sal-registro-card">
             <div className="sal-paso-header">
               <span className="sal-paso-num">4</span>
               <strong>Registro y ruta segura</strong>
@@ -1237,35 +1255,25 @@ export default function SalaTresCaminos() {
             </p>
             <strong className="sal-ruta-pregunta">¿Qué puerta indicó el sistema como ruta segura?</strong>
 
-            <div className="sal-puerta-opciones">
+            <div data-review-target="native-puerta" className="sal-puerta-opciones">
               {(["alfa", "beta", "gamma"] as Puerta[]).map((p) => (
                 <button
                   key={p}
                   type="button"
                   className={`sal-puerta-opcion ${puertaFinal === p ? "sal-puerta-opcion-activa" : ""}`}
                   style={{ borderColor: HEX_PUERTA[p], background: puertaFinal === p ? HEX_PUERTA[p] : undefined }}
-                  onClick={() => setPuertaFinal(p)}
+                  onClick={() => {if(!mission.correctOnly || puertaFinal!==PUERTA_SEGURA)setPuertaFinal(p);}}
                 >
                   {NOMBRE_PUERTA[p]}
                 </button>
               ))}
             </div>
 
-            <button
-              type="button"
-              className="sal-abrir-puerta-btn"
-              onClick={handleAbrirPuerta}
-              disabled={!puertaFinal}
-            >
-              <FiKey />
-              <span>
-                Abrir Puerta
-                <small>Se habilitará cuando completes todos los retos correctamente.</small>
-              </span>
-            </button>
+            <p className="mn-finish-direction">Cuando completes los retos, usa «Terminar misión» al final de la actividad.</p>
           </div>
         </div>
-      </main>
+      {missionNotice&&<p role="status">{missionNotice}</p>}<PilotEvidenceStatus pilot={pilot}/>
+<RetosDeMision expansion={mission}/><CierreDeMision onFinish={()=>void handleAbrirPuerta()} /></main>
 
       {mostrarIntroBait && (
         <PistaBaitModal

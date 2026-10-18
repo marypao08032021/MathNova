@@ -144,13 +144,9 @@ function generarContrasenaSegura() {
   const simbolos = "@#$%";
   const base = letras + numeros + simbolos;
 
-  let password = "Mn";
-
-  for (let i = 0; i < 8; i += 1) {
-    password += base[Math.floor(Math.random() * base.length)];
-  }
-
-  return `${password}${numeros[Math.floor(Math.random() * numeros.length)]}`;
+  const values = new Uint32Array(12);
+  crypto.getRandomValues(values);
+  return Array.from(values, value => base[value % base.length]).join("") + "A7!";
 }
 
 async function leerRespuesta<T>(response: Response): Promise<T> {
@@ -376,13 +372,10 @@ function GestionDocentes() {
       return "Escribe la clave de acceso para crear o editar docentes.";
     }
 
-    if (claveAcceso !== "1234") {
-      return "La clave de acceso no es correcta.";
-    }
 
     if (password || confirmar) {
-      if (password.length < 4) {
-        return "La contraseña debe tener mínimo 4 caracteres.";
+      if (password.length < 8) {
+        return "La contraseña debe tener mínimo 8 caracteres.";
       }
 
       if (password !== confirmar) {

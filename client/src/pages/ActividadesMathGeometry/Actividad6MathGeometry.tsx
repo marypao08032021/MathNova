@@ -1,3 +1,13 @@
+import useGeometryEvidence from "../../hooks/useGeometryEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import ContinuacionDeMision from "../../components/ContinuacionDeMision";
+import DetalleErroresDeMision from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useAutoProgreso } from "../../hooks/useAutoProgreso";
 
 import {
@@ -565,6 +575,7 @@ function VideoCanvasTransparente({
 }
 
 function Actividad6MathGeometry() {
+ const mission=useMissionExpansion("mathgeometry-actividad-6");
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -630,20 +641,22 @@ function Actividad6MathGeometry() {
   const pistaActiva = PISTAS_ACT6[pistaSeleccionada];
   const progreso = Math.round((completados / RETOS.length) * 100);
 
+  const pilot=useGeometryEvidence("mathgeometry-actividad-6",mission,()=>({
+      errores,
+      cristales_activados: completados,
+    }));
+
   useAutoProgreso({
     completada: modal === "completado",
     codigo: "mathgeometry-actividad-6",
     mundo: "MathGeometry",
     tema: "Bisectriz de un ángulo",
     titulo: "El Escudo Perfecto",
-    aciertos: RETOS.length,
-    totalPreguntas: RETOS.length,
+    aciertos: RETOS.length + mission.correctCount,
+    totalPreguntas: mission.total,
     tiempoSegundos: segundos,
     xpBase: 240,
-    respuestas: {
-      errores,
-      cristales_activados: RETOS.length,
-    },
+    respuestas: pilot.evidence(),
   });
 
   const tiempo = useMemo(() => {
@@ -1090,7 +1103,8 @@ function Actividad6MathGeometry() {
 
     if (retoCelebrado >= RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1192,6 +1206,7 @@ function Actividad6MathGeometry() {
 
   const comprobar = () => {
     if (!seleccion || pausado || aciertoEspecial !== null) return;
+    pilot.recordNative(retoActual,seleccion);
 
     if (seleccion === reto.correcta) {
       setRevision("correcto");
@@ -1218,7 +1233,8 @@ function Actividad6MathGeometry() {
 
     if (retoActual === RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1228,6 +1244,8 @@ function Actividad6MathGeometry() {
   };
 
   const reiniciar = () => {
+    mission.reset();
+    pilot.resetSession();
     setRetoActual(0);
     setSeleccion(null);
     setRevision("pendiente");
@@ -1292,13 +1310,14 @@ function Actividad6MathGeometry() {
 
     setModalReproduciendo(false);
     setModal(null);
-    setSeleccion(null);
     setRevision("pendiente");
     setTextoSombra(TEXTO_INICIAL_SOMBRA);
     setIndiceSombraActivo(-1);
     setProgresoSombraActivo(0);
     setReinicioModal((valor) => valor + 1);
-  };
+  
+ mission.beginCorrection();
+};
 
   const videoModal =
     modal === "profesor"
@@ -1315,7 +1334,7 @@ function Actividad6MathGeometry() {
         : "Mensaje de Sombra";
 
   return (
-    <main className="act6geo-page">
+    <main className="act6geo-page mn-activity">
       <button
         type="button"
         className={`act6geo-hamburger-btn ${
@@ -1397,22 +1416,7 @@ function Actividad6MathGeometry() {
           </button>
         </nav>
 
-        <div className="act6geo-sidebar-progress-area">
-          <article className="act6geo-side-week-card">
-            <div className="act6geo-side-week-head">
-              <strong>Progreso semanal</strong>
-              <span>Nivel 3</span>
-            </div>
-
-            <div className="act6geo-side-progress">
-              <span>★</span>
-              <div>
-                <b style={{ width: "60%" }} />
-              </div>
-              <strong>60%</strong>
-            </div>
-          </article>
-        </div>
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathgeometry-actividad-6"].objective}</strong></div>
       </aside>
 
       <section className="act6geo-content">
@@ -1423,26 +1427,9 @@ function Actividad6MathGeometry() {
         />
 
         <section className="act6geo-main">
-          <div className="act6geo-breadcrumb">
-            <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
-              Mundos
-            </button>
+        <CabeceraCurricular curriculum={activityCurriculum["mathgeometry-actividad-6"]} />
+        
 
-            <span>›</span>
-
-            <button
-              type="button"
-              onClick={() => irARuta("/actividades/geometria")}
-            >
-              Actividades MathGeometry
-            </button>
-
-            <span>›</span>
-
-            <button type="button" className="act6geo-breadcrumb-current">
-              Act 6
-            </button>
-          </div>
 
           <header className="act6geo-topbar">
             <div className="act6geo-title-area">
@@ -1569,7 +1556,8 @@ function Actividad6MathGeometry() {
             </div>
           </section>
 
-          <div className="act6geo-layout">
+          <EnsayoOtrosMundos activityId="mathgeometry-actividad-6"/>
+<div className="act6geo-layout">
             <section className="act6geo-game-card">
               <div className="act6geo-challenge-head">
                 <span>
@@ -1729,6 +1717,8 @@ function Actividad6MathGeometry() {
               </article>
             </aside>
           </div>
+ 
+
 
           {/* Barra inferior de resultados, adaptada de la Actividad 5. */}
           <section className="act6geo-bottom-stats">
@@ -1766,7 +1756,9 @@ function Actividad6MathGeometry() {
               </div>
             </article>
           </section>
-        </section>
+        <PilotEvidenceStatus pilot={pilot}/>
+        <ContinuacionDeMision expansion={mission} onComplete={()=>{setModal("completado");}} onRestart={reiniciar}/>
+</section>
 
         <footer className="act6geo-footer">
           <div className="act6geo-footer-icons">
@@ -1930,7 +1922,7 @@ function Actividad6MathGeometry() {
               />
             )}
 
-            <div className="act6geo-modal-content">
+            <div className="act6geo-modal-content"><AudioRetroalimentacion/>
               <span className="act6geo-modal-badge">
                 <FiVolume2 />
                 {modal === "profesor"
@@ -2109,6 +2101,8 @@ function Actividad6MathGeometry() {
 
               {modal === "sombra" && (
                 <div className="act6geo-modal-script-lines act6geo-sombra-script-lines">
+ <DetalleErroresDeMision items={[...(RETOS.map((r,i)=>({id:`native-${i}`,title:i===retoActual?reto.pregunta:`Reto geométrico ${i+1}`,answer:i===retoActual?(reto.opciones.find(o=>o.id===seleccion)?.texto||"Sin respuesta"):i<completados?"Validado en la misión":"",correct:i<completados?true:i===retoActual?Boolean(seleccion===reto.correcta):null,hint:i===retoActual?`Revisa la propiedad indicada en el reto. La opción que corresponde es: ${reto.opciones.find(o=>o.id===reto.correcta)?.texto}. Consulta la pista para justificarla.`:"Puedes consultar la pista del personaje cuando llegues a este reto.",target:".act6geo-layout"})).filter((_,i)=>i<=retoActual)),...mission.items]} onCorrect={(item)=>{setModal(null); setRevision("pendiente"); audioSombraRef.current?.pause(); mission.beginCorrection(item);}} onRestart={reiniciar}/>
+
                   {GUION_SOMBRA_ERROR.map((linea, indice) => (
                     <p
                       key={linea}
@@ -2195,7 +2189,7 @@ function Actividad6MathGeometry() {
               }}
             />
 
-            <div className="act6geo-complete-content">
+            <div className="act6geo-complete-content"><AudioRetroalimentacion/>
               <span>🏆 Escudo activado</span>
               <h2>¡Escudo Perfecto activado!</h2>
 
@@ -2237,7 +2231,7 @@ function Actividad6MathGeometry() {
                 <article>
                   <FiCheck />
                   <span>Cristales</span>
-                  <strong>6/6</strong>
+                  <strong>{mission.total}/{mission.total}</strong>
                 </article>
                 <article>
                   <FiTarget />

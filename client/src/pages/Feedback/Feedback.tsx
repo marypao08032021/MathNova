@@ -1,3 +1,4 @@
+import StudentReviews from "../../components/StudentReviews";
 import {
   useCallback,
   useEffect,
@@ -1002,7 +1003,7 @@ function Feedback() {
         </div>
       </aside>
 
-      <section className="fbk-content">
+      <section className="fbk-content"><StudentReviews/>
         <header className="fbk-topbar">
           <div>
             <h1>

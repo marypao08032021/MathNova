@@ -1,0 +1,92 @@
+/* Escenas con datos del reto: se muestra el recurso completo, sin recorte ni zoom decorativo. */
+body .mn-activity.mn-activity :is(
+  .act2geo-map-wrap,
+  .act3geo-door-stage,
+  .act4geo-laser-frame,
+  .act5geo-laser-frame,
+  .act6geo-laser-frame,
+  .act7geo-laser-frame,
+  .act8geo-laser-frame,
+  .mnx-cofre-art, .mnx-cofre-chest-visual, .mnx-ascensor-visual, .mnx-escuadron-visual, .mnx-espejos-scene-visual, .mnx-puente-art,
+  .mnx-radar-art,
+  .mnx-radar-visual,
+  .mnx-ascensor-art,
+  .mnx-escuadron-art,
+  .mnx-espejos-art,
+  .mnx-puente-scene-visual,
+  .mnx-enigma-art,
+  .mnx-simulador-art
+) {
+  box-sizing: border-box !important;
+  min-width: 0 !important; width: 100% !important; max-width: 100% !important;
+  min-height: 0 !important; height: auto !important; max-height: none !important;
+  aspect-ratio: auto !important;
+}
+body .mn-activity.mn-activity :is(
+  .act2geo-map-wrap,
+  .act3geo-door-stage,
+  .act4geo-laser-frame,
+  .act5geo-laser-frame,
+  .act6geo-laser-frame,
+  .act7geo-laser-frame,
+  .act8geo-laser-frame,
+  .mnx-cofre-art, .mnx-cofre-chest-visual, .mnx-ascensor-visual, .mnx-escuadron-visual, .mnx-espejos-scene-visual, .mnx-puente-art,
+  .mnx-radar-art,
+  .mnx-radar-visual,
+  .mnx-ascensor-art,
+  .mnx-escuadron-art,
+  .mnx-espejos-art,
+  .mnx-puente-scene-visual,
+  .mnx-enigma-art,
+  .mnx-simulador-art
+) > img {
+  display: block !important; position: relative !important; inset: auto !important;
+  width: 100% !important; max-width: 100% !important;
+  min-width: 0 !important; min-height: 0 !important;
+  height: auto !important; max-height: min(680px, 70svh) !important;
+  object-fit: contain !important; object-position: center !important;
+  aspect-ratio: auto !important;
+  transform: none !important; scale: 1 !important; translate: none !important;
+  animation: none !important;
+}
+/* Estas escenas tenían una capa absoluta que podía cortar o tapar parte de la imagen. */
+body .mn-activity.mn-activity :is(.mnx-radar-visual,.mnx-puente-scene-visual,.mnx-cofre-chest-visual,.mnx-ascensor-visual,.mnx-escuadron-visual,.mnx-espejos-scene-visual) {
+  position: relative !important; inset: auto !important; width: 100% !important;
+}
+body .mn-activity.mn-activity :is(.mnx-cofre-art, .mnx-cofre-chest-visual, .mnx-ascensor-visual, .mnx-escuadron-visual, .mnx-espejos-scene-visual, .mnx-puente-art,
+  .mnx-radar-art,.mnx-ascensor-art,.mnx-escuadron-art,.mnx-espejos-art,.mnx-enigma-art,.mnx-simulador-art) { display: block !important; }
+body .mn-activity.mn-activity :is(.mnx-cofre-mission,.mnx-puente-mission,.mnx-radar-mission,.mnx-ascensor-mission,.mnx-escuadron-mission,.mnx-espejos-mission,.mnx-enigma-mission,.mnx-simulador-mission) {
+  position: relative !important; inset: auto !important; width: auto !important;
+  margin: 12px !important;
+}
+/* Mensajes ilustrados de MathData: el texto integrado en el recurso también debe verse. */
+body .mn-activity.mn-activity img:is(
+  .rmp-villano-box,
+  .enc-villano-box,
+  .enc-interferencia-activa-img,
+  .hol-villano-box,
+  .nuc-villano-card-img,
+  .orc-villano-card-img,
+  .sal-villano-amenaza-img,
+  .sal-villano-banner-corner
+) {
+  display: block !important; max-width: 100% !important; width: 100% !important;
+  min-width: 0 !important; min-height: 0 !important; height: auto !important;
+  max-height: min(500px, 60svh) !important; object-fit: contain !important;
+  object-position: center !important; transform: none !important;
+}
+/* Las miniaturas de actividades muestran toda la ilustración. Los fondos y avatares conservan su diseño. */
+body :is(.geomx-activity-image,.mathdatax-activity-card,.numbersx-activity-card) > img { object-fit: contain !important; object-position: center !important; }
+body .mn-activity :is(.rmp-grafica-svg,.sen-radar-svg) { max-width: 100%; height: auto; }
+
+/* El mapa conserva su proporción natural para que las capas del mecanismo sigan el mismo plano. */
+body .mn-activity.mn-activity .act2geo-map-wrap > img { max-height: none !important; }
+
+/* La tarjeta de ángulos no debe calcular su ancho a partir de una imagen porcentual. */
+body .mn-activity.mn-activity .act3geo-board { width: 100% !important; min-width: 0 !important; max-width: 100% !important; }
+body .mn-activity.mn-activity .act3geo-door-stage { align-self: stretch !important; flex-shrink: 0 !important; }
+
+@media (max-width: 1000px) {
+  body .mn-activity.mn-activity .act3geo-layout { grid-template-columns: minmax(0,1fr) !important; }
+  body .mn-activity.mn-activity .act3geo-right-panel { min-width: 0 !important; width: 100% !important; }
+}

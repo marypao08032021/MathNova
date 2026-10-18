@@ -14,15 +14,12 @@ const DEFAULT_PORT = Number(process.env.PORT) || 3001;
 
 export const startServer = async (): Promise<Server> => {
   const host = process.env.HOST || getServerHost();
-  const port = await findAvailablePort(DEFAULT_PORT, host);
+  const port = await findAvailablePort(DEFAULT_PORT, host, process.env.PORT_STRICT === "true" ? 1 : 20);
   process.env.PORT = String(port);
 
-  // Intentar sincronizar DB pero sin detener el servidor si falla
-  await initDb().catch(err => {
-    console.warn('⚠️ DB sync falló (probablemente tablas pendientes):', err.message);
-  });
+  await initDb();
+  if (!process.env.JWT_SECRET?.trim()) throw new Error('Falta JWT_SECRET.');
 
-  // El servidor arranca siempre
   const server = app.listen(port, host, () => {
     const urls = getAccessUrls(port);
     console.log(`🚀 MathNova disponible en ${urls.local}`);

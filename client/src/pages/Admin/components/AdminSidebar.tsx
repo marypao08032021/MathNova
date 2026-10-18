@@ -1,3 +1,4 @@
+import {useState} from "react";
 import { NavLink } from "react-router-dom";
 import type { AdminPage } from "../AdminLayout/AdminLayout";
 import logoMathNova from "../../../assets/logo_MathNova.png";
@@ -8,6 +9,7 @@ type AdminSidebarProps = {
 };
 
 function AdminSidebar({ activePage, isOpen }: AdminSidebarProps) {
+  const [expanded,setExpanded]=useState(true);
   return (
     <aside className={`sidebar ${isOpen ? "open" : ""}`} id="sidebar">
       <NavLink className="brand brand-image-link" to="/dashboard-administrador" aria-label="MathNova">
@@ -19,8 +21,9 @@ function AdminSidebar({ activePage, isOpen }: AdminSidebarProps) {
           <svg><use href="#i-home" /></svg><span>Dashboard principal</span>
         </NavLink>
 
-        <div className="nav-section open">
-          <button className="nav-item section-toggle" type="button" aria-expanded="true">
+        <NavLink className={"nav-item "+(activePage==="users"?"active":"")} to="/admin/superusuario"><span>Superusuario · cuentas y registros</span></NavLink>
+        <div className={"nav-section "+(expanded?"open":"")}>
+          <button className="nav-item section-toggle" type="button" aria-expanded={expanded} onClick={()=>setExpanded(v=>!v)}>
             <svg><use href="#i-users" /></svg><span>Gestión académica</span><svg className="chevron"><use href="#i-chevron" /></svg>
           </button>
           <div className="submenu">

@@ -1,3 +1,5 @@
+import AulaNotice from "../../components/AulaNotice";
+import useAulaAccess from "../../hooks/useAulaAccess";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ActividadesMathNumbers.css";
@@ -164,6 +166,8 @@ const obtenerIdUsuarioNumbers = (): number => {
 };
 
 function ActividadesMathNumbers() {
+  const aula=useAulaAccess();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] =
@@ -272,7 +276,7 @@ function ActividadesMathNumbers() {
 
  const iniciarActividad = (slug: string, bloqueada: boolean) => {
     if (bloqueada) {
-      alert("Debes completar la actividad anterior para desbloquear esta.");
+      alert("Esta actividad debe ser habilitada por tu docente.");
       return;
     }
 
@@ -416,7 +420,7 @@ function ActividadesMathNumbers() {
 
  const actividadesConEstado = useMemo(
     () =>
-      actividades.map((item, index) => {
+      actividades.map((item) => {
         const registro = item.codigosProgreso
           ?.map((codigo) => progresoPorCodigo.get(codigo))
           .find(Boolean);
@@ -428,19 +432,7 @@ function ActividadesMathNumbers() {
               ? "En curso"
               : "Pendiente";
 
-        // --- LÓGICA DE DESBLOQUEO SECUENCIAL ---
-        // La primera actividad (índice 0) siempre está desbloqueada.
-        // Las siguientes requieren que la actividad anterior esté "Completada".
-        let bloqueada = false;
-        if (index > 0) {
-          const actividadAnterior = actividades[index - 1];
-          const registroAnterior = actividadAnterior.codigosProgreso
-            ?.map((codigo) => progresoPorCodigo.get(codigo))
-            .find(Boolean);
-
-          const anteriorCompletada = registroAnterior?.completada === true;
-          bloqueada = !anteriorCompletada;
-        }
+        const bloqueada = !aula.allowed("mathnumbers-"+item.slug);
 
         return {
           ...item,
@@ -454,7 +446,7 @@ function ActividadesMathNumbers() {
           ),
         };
       }),
-    [actividades, progresoPorCodigo],
+    [actividades, progresoPorCodigo, aula.actividades],
   );
 
   /*
@@ -656,6 +648,7 @@ function ActividadesMathNumbers() {
         />
 
         <section className="numbersx-main">
+          <AulaNotice aula={aula} mundo="mathnumbers"/>
           <div className="numbersx-header">
             <div className="numbersx-title-box">
               <h1>Actividades de MathNumbers</h1>

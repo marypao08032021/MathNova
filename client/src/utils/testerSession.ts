@@ -1,0 +1,19 @@
+import {getAuthToken,getSessionUser} from './authSession';
+const KEY='mathnova_tester_session';
+const rawGet=Storage.prototype.getItem,rawSet=Storage.prototype.setItem,rawRemove=Storage.prototype.removeItem;
+type TesterSession={id:string;token:string;exp:number;actor:string};
+export function getTesterSession():TesterSession|null{try{const text=rawGet.call(sessionStorage,KEY);if(!text)return null;const s=JSON.parse(text) as TesterSession;const actor=String(getSessionUser()?.id_usuario??'');return s.exp>Date.now()&&s.actor===actor?s:null}catch{return null}}
+export function isTesterSession(){return Boolean(getTesterSession())}
+export async function startTesterSession(){const r=await fetch('/api/tester/entrar',{method:'POST',headers:{Authorization:`Bearer ${getAuthToken()}`,'Content-Type':'application/json'}});const d=await r.json();if(!r.ok)throw Error(d.mensaje||'No se pudo abrir el modo tester.');rawSet.call(sessionStorage,KEY,JSON.stringify({...d,actor:String(getSessionUser()?.id_usuario??'')}));window.dispatchEvent(new Event('mathnova-tester-change'))}
+export function clearTesterSession(){const text=rawGet.call(sessionStorage,KEY);if(text){try{const s=JSON.parse(text);const prefix='mathnova-tester:'+s.id+':';for(const key of Object.keys(sessionStorage))if(key.startsWith(prefix))rawRemove.call(sessionStorage,key)}catch{/* Una sesión incompleta no contiene progreso recuperable. */}}rawRemove.call(sessionStorage,KEY);window.dispatchEvent(new Event('mathnova-tester-change'))}
+export async function stopTesterSession(){try{if(getTesterSession())await fetch('/api/tester/salir',{method:'POST'})}finally{clearTesterSession()}}
+let installed=false;
+export function installTesterTransport(){if(installed)return;installed=true;const originalFetch=window.fetch.bind(window);
+ const authKeys=new Set(['token','authToken','mathnova_token','mathnovaToken','usuario','user','mathnova_user','mathnova_session','authUser','auth_session','session','modoInvitado']);
+ Storage.prototype.getItem=function(key:string){const scoped=this===localStorage&&!authKeys.has(key),s=scoped?getTesterSession():null;return s?rawGet.call(sessionStorage,'mathnova-tester:'+s.id+':'+key):scoped&&rawGet.call(sessionStorage,KEY)?null:rawGet.call(this,key)};
+ Storage.prototype.setItem=function(key:string,value:string){const scoped=this===localStorage&&!authKeys.has(key),s=scoped?getTesterSession():null;if(s)rawSet.call(sessionStorage,'mathnova-tester:'+s.id+':'+key,value);else if(!scoped||!rawGet.call(sessionStorage,KEY))rawSet.call(this,key,value)};
+ Storage.prototype.removeItem=function(key:string){const scoped=this===localStorage&&!authKeys.has(key),s=scoped?getTesterSession():null;if(s)rawRemove.call(sessionStorage,'mathnova-tester:'+s.id+':'+key);else if(!scoped||!rawGet.call(sessionStorage,KEY))rawRemove.call(this,key)};
+ window.fetch=async(input:RequestInfo|URL,init?:RequestInit)=>{const rawUrl=input instanceof Request?input.url:String(input),url=new URL(rawUrl,location.href);const configured=String(import.meta.env.VITE_API_URL||import.meta.env.VITE_API_BASE_URL||`http://${location.hostname}:3001`);const trusted=new Set([location.origin,new URL(configured,location.origin).origin]);const stored=rawGet.call(sessionStorage,KEY);const s=getTesterSession();
+ if(stored&&!s&&trusted.has(url.origin)&&url.pathname.startsWith('/api/')&&!url.pathname.startsWith('/api/auth/'))return new Response(JSON.stringify({ok:false,mensaje:'La sesión tester terminó. Pulsa Volver al docente para continuar.'}),{status:401,headers:{'Content-Type':'application/json'}});
+ if(s&&trusted.has(url.origin)&&url.pathname.startsWith('/api/')){const headers=new Headers(init?.headers||(input instanceof Request?input.headers:undefined));headers.set('Authorization','Bearer '+s.token);return originalFetch(input,{...init,headers})}return originalFetch(input,init)};
+}

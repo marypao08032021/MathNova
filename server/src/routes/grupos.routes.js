@@ -3,6 +3,11 @@ const pool = require("../db");
 const verificarToken = require("../middleware/auth");
 
 const router = express.Router();
+const aula=require('../services/aulaService');
+router.use(verificarToken,async(req,res,next)=>{try{
+ aula.docente(req.usuario);const match=req.path.match(/^\/(\d+)(?:\/|$)/);if(match)await aula.grupo(req.usuario,match[1]);next();
+}catch(e){res.status(e.status||503).json({ok:false,mensaje:e.status?e.message:'No se pudo comprobar el acceso al grupo.'})}});
+
 
 function validarId(valor) {
   const id = Number(valor);
@@ -34,7 +39,7 @@ async function obtenerGrupoDelDocente(idGrupo) {
   return resultado.rows[0] || null;
 }
 
-router.get("/", verificarToken, async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const resultado = await pool.query(
       `
@@ -47,9 +52,10 @@ router.get("/", verificarToken, async (req, res) => {
       LEFT JOIN public.grupo_alumnos ga
         ON ga.id_grupo = g.id_grupo
         AND ga.estado = true
+      WHERE $1::boolean OR g.id_profesor=$2
       GROUP BY g.id_grupo, g.nombre_grupo, g.id_profesor
       ORDER BY g.id_grupo DESC
-      `
+      `, [req.usuario.rol==='admin',req.usuario.id_usuario]
     );
 
     return res.json({
@@ -66,7 +72,7 @@ router.get("/", verificarToken, async (req, res) => {
   }
 });
 
-router.get("/alumnos-disponibles-crear", verificarToken, async (req, res) => {
+router.get("/alumnos-disponibles-crear", async (req, res) => {
   try {
     const buscar = String(req.query.buscar || "").trim();
 
@@ -79,7 +85,7 @@ router.get("/alumnos-disponibles-crear", verificarToken, async (req, res) => {
         r.correo,
         r.usuario
       FROM public.registro r
-      WHERE LOWER(COALESCE(r.rol, '')) = 'estudiante'
+      WHERE LOWER(COALESCE(r.rol, '')) IN ('estudiante','alumno')
         AND r.estado = true
         AND (
           $1 = ''
@@ -107,7 +113,7 @@ router.get("/alumnos-disponibles-crear", verificarToken, async (req, res) => {
   }
 });
 
-router.post("/", verificarToken, async (req, res) => {
+router.post("/", async (req, res) => {
   const client = await pool.connect();
 
   try {
@@ -138,7 +144,7 @@ router.post("/", verificarToken, async (req, res) => {
         FROM public.registro
         WHERE id_usuario = ANY($1::bigint[])
           AND estado = true
-          AND LOWER(COALESCE(rol, '')) = 'estudiante'
+          AND LOWER(COALESCE(rol, '')) IN ('estudiante','alumno')
         `,
         [idsAlumnos]
       );
@@ -221,7 +227,7 @@ router.post("/", verificarToken, async (req, res) => {
   }
 });
 
-router.put("/:idGrupo", verificarToken, async (req, res) => {
+router.put("/:idGrupo", async (req, res) => {
   try {
     const idGrupo = validarId(req.params.idGrupo);
     const nombreGrupo = req.body.nombre_grupo?.trim();
@@ -279,7 +285,7 @@ router.put("/:idGrupo", verificarToken, async (req, res) => {
   }
 });
 
-router.get("/:idGrupo/alumnos", verificarToken, async (req, res) => {
+router.get("/:idGrupo/alumnos", async (req, res) => {
   try {
     const idGrupo = validarId(req.params.idGrupo);
 
@@ -313,7 +319,7 @@ router.get("/:idGrupo/alumnos", verificarToken, async (req, res) => {
       WHERE ga.id_grupo = $1
         AND ga.estado = true
         AND r.estado = true
-        AND LOWER(COALESCE(r.rol, '')) = 'estudiante'
+        AND LOWER(COALESCE(r.rol, '')) IN ('estudiante','alumno')
       ORDER BY r.nombre_completo ASC
       `,
       [idGrupo]
@@ -333,7 +339,7 @@ router.get("/:idGrupo/alumnos", verificarToken, async (req, res) => {
   }
 });
 
-router.get("/:idGrupo/alumnos-disponibles", verificarToken, async (req, res) => {
+router.get("/:idGrupo/alumnos-disponibles", async (req, res) => {
   try {
     const idGrupo = validarId(req.params.idGrupo);
     const buscar = String(req.query.buscar || "").trim();
@@ -363,7 +369,7 @@ router.get("/:idGrupo/alumnos-disponibles", verificarToken, async (req, res) => 
         r.correo,
         r.usuario
       FROM public.registro r
-      WHERE LOWER(COALESCE(r.rol, '')) = 'estudiante'
+      WHERE LOWER(COALESCE(r.rol, '')) IN ('estudiante','alumno')
         AND r.estado = true
         AND NOT EXISTS (
           SELECT 1
@@ -398,7 +404,7 @@ router.get("/:idGrupo/alumnos-disponibles", verificarToken, async (req, res) => 
   }
 });
 
-router.post("/:idGrupo/alumnos", verificarToken, async (req, res) => {
+router.post("/:idGrupo/alumnos", async (req, res) => {
   try {
     const idGrupo = validarId(req.params.idGrupo);
     const idAlumno = validarId(req.body.id_alumno);
@@ -425,7 +431,7 @@ router.post("/:idGrupo/alumnos", verificarToken, async (req, res) => {
       FROM public.registro
       WHERE id_usuario = $1
         AND estado = true
-        AND LOWER(COALESCE(rol, '')) = 'estudiante'
+        AND LOWER(COALESCE(rol, '')) IN ('estudiante','alumno')
       `,
       [idAlumno]
     );
@@ -456,6 +462,7 @@ router.post("/:idGrupo/alumnos", verificarToken, async (req, res) => {
     }
 
     if (asignacion.rows.length > 0) {
+      await pool.query("DELETE FROM public.mathnova_acceso_alumno WHERE id_grupo=$1 AND id_alumno=$2",[idGrupo,idAlumno]);
       await pool.query(
         `
         UPDATE public.grupo_alumnos
@@ -504,7 +511,7 @@ router.post("/:idGrupo/alumnos", verificarToken, async (req, res) => {
   }
 });
 
-router.delete("/:idGrupo/alumnos/:idAlumno", verificarToken, async (req, res) => {
+router.delete("/:idGrupo/alumnos/:idAlumno", async (req, res) => {
   try {
     const idGrupo = validarId(req.params.idGrupo);
     const idAlumno = validarId(req.params.idAlumno);
@@ -544,6 +551,7 @@ router.delete("/:idGrupo/alumnos/:idAlumno", verificarToken, async (req, res) =>
       });
     }
 
+    await pool.query("DELETE FROM public.mathnova_acceso_alumno WHERE id_grupo=$1 AND id_alumno=$2",[idGrupo,idAlumno]);
     return res.json({
       ok: true,
       mensaje: "Alumno eliminado del grupo correctamente.",

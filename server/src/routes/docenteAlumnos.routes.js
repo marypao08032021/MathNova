@@ -1,4 +1,5 @@
-﻿const express = require("express");
+const {scopeStudent,scopeGroup}=require('../services/docenteScope');
+const express = require("express");
 const bcrypt = require("bcryptjs");
 const pool = require("../db");
 
@@ -54,7 +55,7 @@ router.get("/", async (req, res) => {
         FROM public.grupo_alumnos ga
         INNER JOIN public.grupos g
           ON g.id_grupo = ga.id_grupo
-        WHERE ga.estado = true
+        WHERE ga.estado = true AND ${scopeGroup('g')}
         ORDER BY ga.id_alumno, g.nombre_grupo ASC
       )
       SELECT
@@ -75,7 +76,7 @@ router.get("/", async (req, res) => {
         ON um.id_usuario = r.id_usuario
       LEFT JOIN grupos_alumno ga
         ON ga.id_alumno = r.id_usuario
-      WHERE LOWER(COALESCE(r.rol, '')) = 'estudiante'
+      WHERE ${scopeStudent('r')} AND LOWER(COALESCE(r.rol, '')) IN ('estudiante','alumno')
         AND r.estado = true
         AND (
           $1 = ''

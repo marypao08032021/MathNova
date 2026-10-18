@@ -1,3 +1,12 @@
+import useMathNumbersEvidence from "../../../hooks/useMathNumbersEvidence";
+import PilotEvidenceStatus from "../../../components/PilotEvidenceStatus";
+import CierreDeMision from "../../../components/CierreDeMision";
+import useMissionExpansion from "../../../hooks/useMissionExpansion";
+import EnsayoDeMision from "../../../components/EnsayoDeMision";
+import RetosDeMision from "../../../components/RetosDeMision";
+import CabeceraCurricular from "../../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../../curriculum/activityCurriculum";
+import "../../../styles/activityExperience.css";
 import "./EspejosBoveda.css";
 
 import { useEffect, useRef, useState } from "react";
@@ -583,6 +592,7 @@ function FloatingByteHint({
 }
 
 export function EspejosBoveda() {
+  const mission = useMissionExpansion("mathnumbers-espejos-boveda");
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
 
@@ -636,7 +646,7 @@ export function EspejosBoveda() {
   const progress =
     Object.keys(answers).length;
 
-  const energy = progress * 50;
+  const energy = Math.round((progress + mission.readyCount) / mission.total * 100);
 
   useEffect(() => {
     if (helpOpen || resultModalOpen) {
@@ -878,10 +888,7 @@ export function EspejosBoveda() {
       return;
     }
 
-    setAnswers((current) => ({
-      ...current,
-      [question]: value,
-    }));
+    setAnswers((current) => mission.correctOnly && current[question] === correctAnswers[question] ? current : ({...current, [question]: value}));
   };
 
   const answerClass = (
@@ -907,6 +914,8 @@ export function EspejosBoveda() {
   };
 
   const limpiarActividad = () => {
+    mission.reset();
+    pilotEvidence.resetSession();
     if (resultTimerRef.current !== null) {
       window.clearTimeout(resultTimerRef.current);
       resultTimerRef.current = null;
@@ -939,13 +948,23 @@ export function EspejosBoveda() {
   const cerrarResultado = () => {
     setResultModalOpen(false);
 
-    if (resultModalKind !== "completed") {
-      limpiarActividad();
-      setResultModalKind("completed");
-    }
+    // Conserva las respuestas para revisar y corregir. Reiniciar las limpia.
   };
 
+  const pilotEvidence = useMathNumbersEvidence("mathnumbers-espejos-boveda", mission, () => ({
+            respuestas_seleccionadas:
+              answers,
+            explicacion_texto:
+              explanation.trim(),
+          }));
+
   const comprobar = async () => {
+    if (!mission.ready) {
+      showToast("Completa los códigos que faltan en los nuevos retos de la misión.", true);
+      document.querySelector(`[data-mission="mathnumbers-espejos-boveda"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+
     if (guardandoProgreso) {
       return;
     }
@@ -958,6 +977,7 @@ export function EspejosBoveda() {
       return;
     }
 
+    const pilotSnapshot = pilotEvidence.reviewForClose();
     const total = (
       Object.keys(
         correctAnswers,
@@ -966,9 +986,9 @@ export function EspejosBoveda() {
       (question) =>
         answers[question] ===
         correctAnswers[question],
-    ).length;
+    ).length + mission.correctCount;
 
-    const esCorrecto = total === 2;
+    const esCorrecto = total === mission.total;
 
     const tiempoSegundos = Math.max(
       1,
@@ -989,18 +1009,14 @@ export function EspejosBoveda() {
             "mathnumbers-espejos-boveda",
           actividad_titulo:
             "Los Espejos de la Bóveda",
-          respuestas: {
-            respuestas_seleccionadas:
-              answers,
-            explicacion_texto:
-              explanation.trim(),
-          },
+          respuestas: pilotSnapshot,
           aciertos: total,
-          total_preguntas: 2,
+          total_preguntas: mission.total,
           tiempo_segundos: tiempoSegundos,
           xp_base: 50,
           completada: esCorrecto,
         });
+      mission.recordResult({correct:total,seconds:tiempoSegundos,xp:Number(resultado.progreso.xp_obtenido ?? 0)});
 
       const progresoGuardado =
         resultado.progreso;
@@ -1088,7 +1104,7 @@ export function EspejosBoveda() {
   };
 
   return (
-    <main className="mnx-espejos-page mnx-espejos-cofre-layout">
+    <main className="mnx-espejos-page mn-activity mnx-espejos-cofre-layout">
       <button
         type="button"
         className={`mnx-espejos-hamburger ${
@@ -1255,6 +1271,8 @@ export function EspejosBoveda() {
         </div>
 
         <section className="mnx-espejos-main">
+        <CabeceraCurricular curriculum={activityCurriculum["mathnumbers-espejos-boveda"]} />
+
           <div className="mnx-espejos-top-actions">
             <button
               type="button"
@@ -1310,7 +1328,7 @@ export function EspejosBoveda() {
               <div className="mnx-espejos-pills">
                 <span>Propiedades</span>
                 <span>8–12 min</span>
-                <span>2 retos</span>
+                <span>{mission.total} retos</span>
                 <span>+50 XP</span>
               </div>
             </div>
@@ -1412,6 +1430,7 @@ export function EspejosBoveda() {
             </div>
           </header>
 
+          <EnsayoDeMision activityId="mathnumbers-espejos-boveda" />
           <section className="mnx-espejos-activity-grid">
             <div className="mnx-espejos-left-column">
               <article className="mnx-espejos-art">
@@ -1599,9 +1618,8 @@ export function EspejosBoveda() {
                               </article>
                             </div>
                           </section>
-
-              <section className="mnx-espejos-questions">
-                            <article className="mnx-espejos-question-card">
+<section className="mnx-espejos-questions">
+                            <article data-review-target="native-q1" className="mnx-espejos-question-card">
                               <div className="mnx-espejos-question-title">
                                 <span>1</span>
 
@@ -1655,7 +1673,7 @@ export function EspejosBoveda() {
                               </div>
                             </article>
 
-                            <article className="mnx-espejos-question-card">
+                            <article data-review-target="native-q2" className="mnx-espejos-question-card">
                               <div className="mnx-espejos-question-title">
                                 <span>2</span>
 
@@ -1713,7 +1731,9 @@ export function EspejosBoveda() {
                               </div>
                             </article>
 
-                            <article className="mnx-espejos-explanation-card">
+                            <PilotEvidenceStatus pilot={pilotEvidence} />
+            <RetosDeMision expansion={mission} disabled={guardandoProgreso} />
+<article className="mnx-espejos-explanation-card">
                               <div className="mnx-espejos-question-title">
                                 <span>3</span>
 
@@ -1775,21 +1795,7 @@ export function EspejosBoveda() {
                               </article>
                             )}
 
-                            <button
-                              type="button"
-                              className="mnx-espejos-check-button"
-                              onClick={comprobar}
-                              disabled={guardandoProgreso}
-                              aria-busy={guardandoProgreso}
-                            >
-                              <FiCheckCircle />
-                              {guardandoProgreso
-                                ? "Guardando progreso..."
-                                : "Comprobar equivalencias"}
-                              <span>
-                                {progress}/2 listas
-                              </span>
-                            </button>
+                            
                           </aside>
             </div>
           </section>
@@ -1801,7 +1807,7 @@ export function EspejosBoveda() {
               <div>
                 <span>Respuestas</span>
                 <strong>
-                  {progress}/2
+                  {progress + mission.readyCount}/{mission.total}
                 </strong>
               </div>
             </article>
@@ -1843,7 +1849,7 @@ export function EspejosBoveda() {
               </div>
             </article>
           </section>
-        </section>
+        <CierreDeMision onFinish={comprobar} busy={guardandoProgreso}/></section>
       </section>
 
       <button
@@ -1863,6 +1869,9 @@ export function EspejosBoveda() {
 
       {resultModalOpen && (
         <ResultModal
+          reviewItems={[...(Object.entries(correctAnswers).map(([id,key],i)=>({id:`native-${id}`,title:`Reto ${i+1}: propiedades del espejo`,answer:answers[id as QuestionKey]||"",correct:answers[id as QuestionKey]===key,hint:i===0?"Conmutar cambia el orden de los operandos, sin cambiar el resultado.":"Asociar cambia la agrupación, sin cambiar el orden de los operandos.",target:`[data-review-target="native-${id}"]`}))),...mission.items]}
+          onCorrect={(item)=>{setResultModalOpen(false);mission.beginCorrection(item);}}
+          summary={mission.result ?? undefined}
           kind={resultModalKind}
           nextRoute={puentePrioridadesRoute}
           retryRoute={espejosRoute}

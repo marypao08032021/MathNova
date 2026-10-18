@@ -1,3 +1,12 @@
+import useMathNumbersEvidence from "../../../hooks/useMathNumbersEvidence";
+import PilotEvidenceStatus from "../../../components/PilotEvidenceStatus";
+import CierreDeMision from "../../../components/CierreDeMision";
+import useMissionExpansion from "../../../hooks/useMissionExpansion";
+import EnsayoDeMision from "../../../components/EnsayoDeMision";
+import RetosDeMision from "../../../components/RetosDeMision";
+import CabeceraCurricular from "../../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../../curriculum/activityCurriculum";
+import "../../../styles/activityExperience.css";
 import "./PuentePrioridades.css";
 
 import { useEffect, useRef, useState } from "react";
@@ -370,6 +379,7 @@ function FloatingByteHint({
 }
 
 export function PuentePrioridades() {
+  const mission = useMissionExpansion("mathnumbers-puente-prioridades");
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
 
@@ -428,7 +438,7 @@ export function PuentePrioridades() {
     Number(answerOne.trim() !== "") +
     Number(answerTwo.trim() !== "");
 
-  const energy = progress * 50;
+  const energy = Math.round((progress + mission.readyCount) / mission.total * 100);
 
   useEffect(() => {
     if (helpOpen || resultModalOpen) {
@@ -676,6 +686,8 @@ export function PuentePrioridades() {
   };
 
   const limpiarActividad = () => {
+    mission.reset();
+    pilotEvidence.resetSession();
     if (resultTimerRef.current !== null) {
       window.clearTimeout(resultTimerRef.current);
       resultTimerRef.current = null;
@@ -709,13 +721,23 @@ export function PuentePrioridades() {
   const cerrarResultado = () => {
     setResultModalOpen(false);
 
-    if (resultModalKind !== "completed") {
-      limpiarActividad();
-      setResultModalKind("completed");
-    }
+    // Conserva las respuestas para revisar y corregir. Reiniciar las limpia.
   };
 
+  const pilotEvidence = useMathNumbersEvidence("mathnumbers-puente-prioridades", mission, () => ({
+            reto_1: answerOne.trim(),
+            reto_2: answerTwo.trim(),
+            explicacion_texto:
+              explanation.trim(),
+          }));
+
   const comprobar = async () => {
+    if (!mission.ready) {
+      showToast("Completa los códigos que faltan en los nuevos retos de la misión.", true);
+      document.querySelector(`[data-mission="mathnumbers-puente-prioridades"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+
     if (guardandoProgreso) {
       return;
     }
@@ -734,11 +756,12 @@ export function PuentePrioridades() {
     const secondCorrect =
       Number(answerTwo.trim()) === 5;
 
+    const pilotSnapshot = pilotEvidence.reviewForClose();
     const total =
       Number(firstCorrect) +
-      Number(secondCorrect);
+      Number(secondCorrect) + mission.correctCount;
 
-    const completed = total === 2;
+    const completed = total === mission.total;
 
     const tiempoSegundos = Math.max(
       1,
@@ -759,18 +782,14 @@ export function PuentePrioridades() {
             "mathnumbers-puente-prioridades",
           actividad_titulo:
             "El Puente de Prioridades",
-          respuestas: {
-            reto_1: answerOne.trim(),
-            reto_2: answerTwo.trim(),
-            explicacion_texto:
-              explanation.trim(),
-          },
+          respuestas: pilotSnapshot,
           aciertos: total,
-          total_preguntas: 2,
+          total_preguntas: mission.total,
           tiempo_segundos: tiempoSegundos,
           xp_base: 50,
           completada: completed,
         });
+      mission.recordResult({correct:total,seconds:tiempoSegundos,xp:Number(resultado.progreso.xp_obtenido ?? 0)});
 
       const progresoGuardado =
         resultado.progreso;
@@ -858,7 +877,7 @@ export function PuentePrioridades() {
   };
 
   return (
-    <main className="mnx-puente-page mnx-puente-cofre-layout">
+    <main className="mnx-puente-page mn-activity mnx-puente-cofre-layout">
       <button
         type="button"
         className={`mnx-puente-hamburger ${
@@ -1024,6 +1043,8 @@ export function PuentePrioridades() {
         </div>
 
         <section className="mnx-puente-main">
+        <CabeceraCurricular curriculum={activityCurriculum["mathnumbers-puente-prioridades"]} />
+
           <div className="mnx-puente-top-actions">
             <button
               type="button"
@@ -1079,7 +1100,7 @@ export function PuentePrioridades() {
               <div className="mnx-puente-pills">
                 <span>Jerarquía</span>
                 <span>10–12 min</span>
-                <span>2 retos</span>
+                <span>{mission.total} retos</span>
                 <span>+50 XP</span>
               </div>
             </div>
@@ -1181,6 +1202,7 @@ export function PuentePrioridades() {
             </div>
           </header>
 
+          <EnsayoDeMision activityId="mathnumbers-puente-prioridades" />
           <section className="mnx-puente-activity-grid">
             <div className="mnx-puente-left-column">
               <article className="mnx-puente-art">
@@ -1366,8 +1388,7 @@ export function PuentePrioridades() {
                   </article>
                 </div>
               </section>
-
-              <section className="mnx-puente-questions">
+<section className="mnx-puente-questions">
                 <article className="mnx-puente-question-card">
                   <div className="mnx-puente-question-title">
                     <span>1</span>
@@ -1381,7 +1402,7 @@ export function PuentePrioridades() {
                     8 + 2 × 5
                   </div>
 
-                  <label className="mnx-puente-result-field">
+                  <label data-review-target="native-0" className="mnx-puente-result-field">
                     <span>
                       Resultado numérico
                     </span>
@@ -1389,14 +1410,14 @@ export function PuentePrioridades() {
                     <input
                       type="text"
                       inputMode="numeric"
-                      pattern="[0-9-]*"
+                      pattern={"[0-9\\-]*"}
                       value={answerOne}
                       onChange={(event) =>
                         setAnswerOne(
                           event.target.value,
                         )
                       }
-                      disabled={guardandoProgreso}
+                      disabled={guardandoProgreso || (mission.correctOnly && Number(answerOne)===18)}
                       placeholder="Escribe el resultado"
                     />
                   </label>
@@ -1415,7 +1436,7 @@ export function PuentePrioridades() {
                     (6 + 4) ÷ 2
                   </div>
 
-                  <label className="mnx-puente-result-field">
+                  <label data-review-target="native-1" className="mnx-puente-result-field">
                     <span>
                       Resultado numérico
                     </span>
@@ -1423,20 +1444,22 @@ export function PuentePrioridades() {
                     <input
                       type="text"
                       inputMode="numeric"
-                      pattern="[0-9-]*"
+                      pattern={"[0-9\\-]*"}
                       value={answerTwo}
                       onChange={(event) =>
                         setAnswerTwo(
                           event.target.value,
                         )
                       }
-                      disabled={guardandoProgreso}
+                      disabled={guardandoProgreso || (mission.correctOnly && Number(answerTwo)===5)}
                       placeholder="Escribe el resultado"
                     />
                   </label>
                 </article>
 
-                <article className="mnx-puente-explanation-card">
+                <PilotEvidenceStatus pilot={pilotEvidence} />
+            <RetosDeMision expansion={mission} disabled={guardandoProgreso} />
+<article className="mnx-puente-explanation-card">
                   <div className="mnx-puente-question-title">
                     <span>3</span>
 
@@ -1500,21 +1523,7 @@ export function PuentePrioridades() {
                   </article>
                 )}
 
-                <button
-                  type="button"
-                  className="mnx-puente-check-button"
-                  onClick={comprobar}
-                  disabled={guardandoProgreso}
-                  aria-busy={guardandoProgreso}
-                >
-                  <FiCheckCircle />
-                  {guardandoProgreso
-                    ? "Guardando progreso..."
-                    : "Comprobar respuestas"}
-                  <span>
-                    {progress}/2 listas
-                  </span>
-                </button>
+                
               </aside>
             </div>
           </section>
@@ -1525,7 +1534,7 @@ export function PuentePrioridades() {
               <div>
                 <span>Respuestas</span>
                 <strong>
-                  {progress}/2
+                  {progress + mission.readyCount}/{mission.total}
                 </strong>
               </div>
             </article>
@@ -1567,7 +1576,7 @@ export function PuentePrioridades() {
               </div>
             </article>
           </section>
-        </section>
+        <CierreDeMision onFinish={comprobar} busy={guardandoProgreso}/></section>
       </section>
 
       <button
@@ -1587,6 +1596,9 @@ export function PuentePrioridades() {
 
       {resultModalOpen && (
         <ResultModal
+          reviewItems={[...([answerOne,answerTwo].map((answer,i)=>({id:`native-${i}`,title:`Tramo del puente ${i+1}`,answer,correct:answer.trim()!=="" && Number(answer)===[18,5][i],hint:i===0?"Aplica la prioridad de operaciones: el primer resultado debe ser 18.":"Revisa el segundo tramo y sus agrupaciones: el resultado debe ser 5.",target:`[data-review-target="native-${i}"]`}))),...mission.items]}
+          onCorrect={(item)=>{setResultModalOpen(false);mission.beginCorrection(item);}}
+          summary={mission.result ?? undefined}
           kind={resultModalKind}
           nextRoute={enigmaVariablesRoute}
           retryRoute={puenteRoute}

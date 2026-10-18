@@ -1,0 +1,118 @@
+/* El diseño de MathNova utiliza superficies claras, también si el SO es oscuro. */
+:root { color-scheme: light; }
+:where(input, select, textarea) { color-scheme: light; }
+:where(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]):not([type=button]):not([type=submit]):not([type=reset]):not([type=image]), select, textarea) {
+  background-color: #fff;
+  color: #17365d;
+}
+:is(.mn-aula, .mn-tool-dialog, .mn-super-dialog) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]), select, textarea) {
+  background-color: #fff;
+  color: #17365d;
+  caret-color: #1767d8;
+  border: 1px solid #b7cbe5;
+  border-radius: 10px;
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  line-height: 1.5;
+}
+:is(.mn-aula, .mn-tool-dialog, .mn-super-dialog) :is(input, select, textarea)::placeholder { color: #64748b; opacity: 1; }
+:is(.mn-aula, .mn-tool-dialog, .mn-super-dialog) :is(input, select, textarea):disabled { background-color: #edf2f8; color: #53657c; opacity: 1; }
+:is(.mn-aula, .mn-tool-dialog, .mn-super-dialog) :is(input, select, textarea):focus-visible { outline: 3px solid #8db9f2; outline-offset: 2px; border-color: #1767d8; }
+:is(.mn-aula, .mn-tool-dialog, .mn-super-dialog) textarea { resize: vertical; width: 100%; }
+:is(.mn-aula, .mn-tool-dialog, .mn-super-dialog) label { min-width: 0; overflow-wrap: anywhere; }
+.mn-aula form { display: grid; gap: 12px; min-width: 0; }
+.mn-aula form > button { justify-self: start; min-height: 44px; max-width: 100%; white-space: normal; }
+.mn-aula form > :is(label, div, fieldset) { min-width: 0; }
+.mn-aula form :is(input, select, textarea) { margin-bottom: 0; }
+.mn-aula form > small { margin-top: 0; }
+
+/* El audio ocupa una fila propia; no consume la celda del personaje o del mensaje. */
+.mn-feedback-audio { grid-column: 1 / -1; min-width: 0; max-width: 100%; align-self: start; }
+.mn-feedback-audio button { white-space: normal; overflow-wrap: break-word; min-height: 44px; }
+
+/* Un único desplazamiento del panel permite llegar a todo el contenido y sus acciones. */
+body .mn-responsive-overlay.mn-responsive-overlay { box-sizing: border-box; padding: 16px; overflow: auto; }
+body .mn-responsive-dialog.mn-responsive-dialog {
+  box-sizing: border-box !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100dvh - 32px) !important;
+  overflow: auto !important;
+  overscroll-behavior: contain;
+  scroll-padding: 16px;
+  grid-template-rows: none !important;
+  grid-auto-rows: max-content !important;
+  align-content: start !important;
+  align-items: start !important;
+}
+body .mn-responsive-dialog.mn-responsive-dialog > :is([class$="-main"], [class$="-side"], [class$="-content"]) {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+body .mn-responsive-dialog.mn-responsive-dialog :is([class$="-actions"], [class$="-controls"]) { min-width: 0; flex-wrap: wrap; }
+body .mn-responsive-dialog.mn-responsive-dialog :is(h1,h2,h3,p,button,label,dd) { overflow-wrap: break-word; }
+body .mn-responsive-dialog.mn-responsive-dialog button { min-height: 44px; max-width: 100%; white-space: normal; }
+body .mn-responsive-dialog.mn-responsive-dialog .mn-review-list { max-height: none; overflow: visible; }
+body .mn-responsive-dialog.mn-responsive-dialog .mn-feedback-audio { grid-column: 1 / -1 !important; }
+@media (max-width: 850px), (max-height: 500px) {
+  body .mn-responsive-overlay.mn-responsive-overlay { padding: 10px !important; }
+  body .mn-responsive-dialog.mn-responsive-dialog.mn-responsive-dialog {
+    max-width: calc(100vw - 20px) !important;
+    max-height: calc(100dvh - 20px) !important;
+    margin-block: 0 !important;
+  }
+}
+@media (max-width: 600px) {
+  :is(.mn-aula,.mn-tool-dialog,.mn-super-dialog) :is(input,select,textarea) { font-size: 16px; }
+  .mn-aula form > button { justify-self: stretch; }
+}
+
+/* Evita que el tamaño intrínseco de una animación agrande su celda del resultado. */
+body .mn-responsive-dialog.mn-responsive-dialog [class$="-character"] {
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0 !important; min-height: 0 !important;
+}
+body .mn-responsive-dialog.mn-responsive-dialog [class$="-character"] > :is(img, video, canvas) {
+  display: block; width: 100% !important; height: 100% !important;
+  min-width: 0 !important; min-height: 0 !important;
+  max-width: 100% !important; max-height: 100% !important;
+  object-fit: contain !important;
+}
+
+/* Los fondos decorativos se ajustan al panel; nunca ensanchan su área desplazable. */
+body .mn-responsive-dialog.mn-responsive-dialog > [class$="-bg-image"] {
+  inset: 0 !important; width: 100% !important; height: 100% !important;
+  max-width: 100% !important; max-height: none !important;
+  object-fit: cover !important; pointer-events: none !important;
+  transform: none !important; animation: none !important;
+}
+
+body .mn-responsive-dialog.mn-responsive-dialog [class$="complete-hero"] { overflow: hidden !important; }
+@media (min-width: 600px) and (max-height: 500px) {
+  body .mn-responsive-dialog.result-modal .result-modal-main { padding-top: 18px !important; }
+  body .mn-responsive-dialog.result-modal .result-modal-header { padding-right: 44px; }
+  body .mn-responsive-dialog.result-modal .result-modal-header-copy h1 { font-size: 1.5rem; }
+  body .mn-responsive-dialog.result-modal .result-modal-content { grid-template-columns: 100px minmax(0,1fr) !important; }
+}
+
+body .mn-responsive-dialog[class*="geo-complete-modal"]::after { top: 0 !important; right: 0 !important; max-width: 100% !important; }
+/* La pista flotante debe recibir clics por encima del menú, y caber en horizontal. */
+.mn-activity [class*="-byte-float"] { z-index: 500 !important; }
+.mn-activity [class*="-byte-float-open"], .mn-activity [class*="-byte-float"].is-open, .mn-activity .sal-pista-flotante-abierta { top: 12px !important; right: 12px !important; bottom: auto !important; left: 12px !important; width: auto !important; }
+.mn-activity [class$="-byte-panel"], .mn-activity .sal-pista-panel {
+  box-sizing: border-box; max-width: calc(100vw - 24px) !important;
+  min-height: 0 !important; max-height: calc(100dvh - 24px) !important;
+  overflow: auto !important; overscroll-behavior: contain;
+}
+@media (max-height: 500px) {
+  .mn-activity [class$="-byte-panel"], .mn-activity .sal-pista-panel { padding: 16px !important; }
+}
+
+.mn-activity .sal-pista-flotante { z-index: 500 !important; }
+.mn-activity :is([class$="-byte-panel"],.sal-pista-panel) button { min-height: 44px; }
+
+.mn-activity :is([class*="-byte-float-open"],[class*="-byte-float"].is-open,.sal-pista-flotante-abierta) > :is([class$="-byte-panel"],.sal-pista-panel) { max-width: 100% !important; }

@@ -1,3 +1,12 @@
+import useMathNumbersEvidence from "../../../hooks/useMathNumbersEvidence";
+import PilotEvidenceStatus from "../../../components/PilotEvidenceStatus";
+import CierreDeMision from "../../../components/CierreDeMision";
+import useMissionExpansion from "../../../hooks/useMissionExpansion";
+import EnsayoDeMision from "../../../components/EnsayoDeMision";
+import RetosDeMision from "../../../components/RetosDeMision";
+import CabeceraCurricular from "../../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../../curriculum/activityCurriculum";
+import "../../../styles/activityExperience.css";
 import "./EnigmaVariables.css";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -442,6 +451,7 @@ function FloatingByteHint({
 }
 
 export function EnigmaVariables() {
+  const mission = useMissionExpansion("mathnumbers-enigma-variables");
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
 
@@ -538,7 +548,7 @@ export function EnigmaVariables() {
   );
 
   const energy = Math.round(
-    (progress / 3) * 100,
+    ((progress + mission.readyCount) / mission.total) * 100,
   );
 
   useEffect(() => {
@@ -776,6 +786,7 @@ export function EnigmaVariables() {
     tokenId: ExpressionTokenId,
     index?: number,
   ) => {
+ if(mission.correctOnly && expressionSlots.every((slot,i)=>slot===correctExpression[i]))return;
     setExpressionSlots((current) => {
       const next = current.map((slot) =>
         slot === tokenId ? null : slot,
@@ -800,6 +811,7 @@ export function EnigmaVariables() {
   };
 
   const removeToken = (index: number) => {
+ if(mission.correctOnly && expressionSlots.every((slot,i)=>slot===correctExpression[i]))return;
     setExpressionSlots((current) =>
       current.map((slot, slotIndex) =>
         slotIndex === index
@@ -862,6 +874,8 @@ export function EnigmaVariables() {
   };
 
   const limpiarActividad = () => {
+    mission.reset();
+    pilotEvidence.resetSession();
     if (resultTimerRef.current !== null) {
       window.clearTimeout(resultTimerRef.current);
       resultTimerRef.current = null;
@@ -901,13 +915,27 @@ export function EnigmaVariables() {
   const cerrarResultado = () => {
     setResultModalOpen(false);
 
-    if (resultModalKind !== "completed") {
-      limpiarActividad();
-      setResultModalKind("completed");
-    }
+    // Conserva las respuestas para revisar y corregir. Reiniciar las limpia.
   };
 
+  const pilotEvidence = useMathNumbersEvidence("mathnumbers-enigma-variables", mission, () => ({
+            significado_variable:
+              meaningAnswer,
+            expresion_construida:
+              expressionSlots,
+            resultado_sustitucion:
+              substitutionResult,
+            explicacion_texto:
+              explanation.trim(),
+          }));
+
   const comprobar = async () => {
+    if (!mission.ready) {
+      showToast("Completa los códigos que faltan en los nuevos retos de la misión.", true);
+      document.querySelector(`[data-mission="mathnumbers-enigma-variables"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+
     if (guardandoProgreso) {
       return;
     }
@@ -934,13 +962,14 @@ export function EnigmaVariables() {
         substitutionResult.trim(),
       ) === 9;
 
+    const pilotSnapshot = pilotEvidence.reviewForClose();
     const totalCorrect =
       Number(meaningCorrect) +
       Number(expressionCorrect) +
-      Number(substitutionCorrect);
+      Number(substitutionCorrect) + mission.correctCount;
 
     const completed =
-      totalCorrect === 3;
+      totalCorrect === mission.total;
 
     const tiempoSegundos = Math.max(
       1,
@@ -961,22 +990,14 @@ export function EnigmaVariables() {
             "mathnumbers-enigma-variables",
           actividad_titulo:
             "El Enigma de Variables",
-          respuestas: {
-            significado_variable:
-              meaningAnswer,
-            expresion_construida:
-              expressionSlots,
-            resultado_sustitucion:
-              substitutionResult,
-            explicacion_texto:
-              explanation.trim(),
-          },
+          respuestas: pilotSnapshot,
           aciertos: totalCorrect,
-          total_preguntas: 3,
+          total_preguntas: mission.total,
           tiempo_segundos: tiempoSegundos,
           xp_base: 60,
           completada: completed,
         });
+      mission.recordResult({correct:totalCorrect,seconds:tiempoSegundos,xp:Number(resultado.progreso.xp_obtenido ?? 0)});
 
       const progresoGuardado =
         resultado.progreso;
@@ -1073,7 +1094,7 @@ export function EnigmaVariables() {
     )?.value ?? "";
 
   return (
-    <main className="mnx-enigma-page mnx-enigma-cofre-layout">
+    <main className="mnx-enigma-page mn-activity mnx-enigma-cofre-layout">
       <button
         type="button"
         className={`mnx-enigma-hamburger ${
@@ -1232,6 +1253,8 @@ export function EnigmaVariables() {
         </div>
 
         <section className="mnx-enigma-main">
+        <CabeceraCurricular curriculum={activityCurriculum["mathnumbers-enigma-variables"]} />
+
           <div className="mnx-enigma-top-actions">
             <button
               type="button"
@@ -1286,7 +1309,7 @@ export function EnigmaVariables() {
               <div className="mnx-enigma-pills">
                 <span>Variables</span>
                 <span>12–15 min</span>
-                <span>3 retos</span>
+                <span>{mission.total} retos</span>
                 <span>+60 XP</span>
               </div>
             </div>
@@ -1390,6 +1413,7 @@ export function EnigmaVariables() {
             </div>
           </header>
 
+          <EnsayoDeMision activityId="mathnumbers-enigma-variables" />
           <section className="mnx-enigma-activity-grid">
             <div className="mnx-enigma-left-column">
               <article className="mnx-enigma-art">
@@ -1530,7 +1554,7 @@ export function EnigmaVariables() {
                   <div>
                     <span>Segmentos</span>
                     <strong>
-                      {progress}/3
+                      {progress + mission.readyCount}/{mission.total}
                     </strong>
                   </div>
                 </article>
@@ -1618,7 +1642,7 @@ export function EnigmaVariables() {
               </section>
 
               <section className="mnx-enigma-challenges">
-                <article className="mnx-enigma-challenge-card mnx-enigma-challenge-one">
+<article className="mnx-enigma-challenge-card mnx-enigma-challenge-one">
                   <div className="mnx-enigma-challenge-head">
                     <span>1</span>
 
@@ -1654,7 +1678,7 @@ export function EnigmaVariables() {
                                 option.id,
                               )
                             }
-                            disabled={guardandoProgreso}
+                            disabled={guardandoProgreso || (mission.correctOnly && meaningAnswer==="unknown")}
                           />
                           <span>
                             {option.label}
@@ -1816,20 +1840,22 @@ export function EnigmaVariables() {
                     <input
                       type="text"
                       inputMode="numeric"
-                      pattern="[0-9-]*"
+                      pattern={"[0-9\\-]*"}
                       value={substitutionResult}
                       onChange={(event) =>
                         setSubstitutionResult(
                           event.target.value,
                         )
                       }
-                      disabled={guardandoProgreso}
+                      disabled={guardandoProgreso || (mission.correctOnly && Number(substitutionResult)===9)}
                       placeholder="?"
                     />
                   </label>
                 </article>
 
-                <article className="mnx-enigma-explanation-card">
+                <PilotEvidenceStatus pilot={pilotEvidence} />
+            <RetosDeMision expansion={mission} disabled={guardandoProgreso} />
+<article className="mnx-enigma-explanation-card">
                   <div className="mnx-enigma-challenge-head">
                     <span>4</span>
 
@@ -1876,21 +1902,7 @@ export function EnigmaVariables() {
               </section>
 
               <aside className="mnx-enigma-actions">
-                <button
-                  type="button"
-                  className="mnx-enigma-check-button"
-                  onClick={comprobar}
-                  disabled={guardandoProgreso}
-                  aria-busy={guardandoProgreso}
-                >
-                  <FiCheckCircle />
-                  {guardandoProgreso
-                    ? "Guardando progreso..."
-                    : "Comprobar respuestas"}
-                  <span>
-                    {progress}/3
-                  </span>
-                </button>
+                
 
                 {activityResolved && (
                   <article className="mnx-enigma-evidence-card">
@@ -1920,7 +1932,7 @@ export function EnigmaVariables() {
               </aside>
             </div>
           </section>
-        </section>
+        <CierreDeMision onFinish={comprobar} busy={guardandoProgreso}/></section>
       </section>
 
       <button
@@ -1940,6 +1952,9 @@ export function EnigmaVariables() {
 
       {resultModalOpen && (
         <ResultModal
+          reviewItems={[...([{id:"native-0",title:"Significado de x",answer:String(meaningAnswer??""),correct:meaningAnswer==="unknown",hint:"x representa una cantidad desconocida.",target:".mnx-enigma-activity-grid"},{id:"native-1",title:"Expresión del enigma",answer:expressionSlots.join(" "),correct:expressionSlots.every((slot,i)=>slot===correctExpression[i]),hint:"La cantidad desconocida más cuatro se representa x + 4.",target:".mnx-enigma-token-bank"},{id:"native-2",title:"Sustitución",answer:substitutionResult,correct:substitutionResult.trim()!==""&&Number(substitutionResult)===9,hint:"Sustituye x por 5: 5 + 4 = 9.",target:".mnx-enigma-result-field"}]),...mission.items]}
+          onCorrect={(item)=>{setResultModalOpen(false);mission.beginCorrection(item);}}
+          summary={mission.result ?? undefined}
           kind={resultModalKind}
           nextRoute={nextActivityRoute}
           retryRoute={activityRoute}

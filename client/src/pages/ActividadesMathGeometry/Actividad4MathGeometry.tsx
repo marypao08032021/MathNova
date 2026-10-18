@@ -1,3 +1,13 @@
+import useGeometryEvidence from "../../hooks/useGeometryEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import ContinuacionDeMision from "../../components/ContinuacionDeMision";
+import DetalleErroresDeMision from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useAutoProgreso } from "../../hooks/useAutoProgreso";
 
 import {
@@ -85,6 +95,7 @@ type Reto = {
   pregunta: string;
   opciones: Array<{ id: OpcionId; texto: string }>;
   correcta: OpcionId;
+  correctas?: OpcionId[];
 };
 
 import videoNova from "../../assets/mathGeometry/actividad4/nova_explicando_act_4_MathGeometry.mp4";
@@ -127,6 +138,7 @@ const RETOS: Reto[] = [
       { id: "D", texto: "C y D" },
     ],
     correcta: "B",
+    correctas: ["B", "D"],
   },
   {
     id: 3,
@@ -151,6 +163,7 @@ const RETOS: Reto[] = [
       { id: "D", texto: "C y D" },
     ],
     correcta: "B",
+    correctas: ["B", "D"],
   },
   {
     id: 5,
@@ -177,6 +190,7 @@ const RETOS: Reto[] = [
       { id: "D", texto: "C y D" },
     ],
     correcta: "B",
+    correctas: ["B", "D"],
   },
 ];
 
@@ -577,6 +591,7 @@ function VideoCanvasTransparente({
 }
 
 function Actividad4MathGeometry() {
+ const mission=useMissionExpansion("mathgeometry-actividad-4");
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -642,20 +657,22 @@ function Actividad4MathGeometry() {
   const pistaActiva = PISTAS_ACT4[pistaSeleccionada];
   const progreso = Math.round((completados / RETOS.length) * 100);
 
+  const pilot=useGeometryEvidence("mathgeometry-actividad-4",mission,()=>({
+      errores,
+      retos_completados: completados,
+    }));
+
   useAutoProgreso({
     completada: modal === "completado",
     codigo: "mathgeometry-actividad-4",
     mundo: "MathGeometry",
     tema: "Ángulos opuestos por el vértice",
     titulo: "Cruce de Láseres",
-    aciertos: RETOS.length,
-    totalPreguntas: RETOS.length,
+    aciertos: RETOS.length + mission.correctCount,
+    totalPreguntas: mission.total,
     tiempoSegundos: segundos,
     xpBase: 240,
-    respuestas: {
-      errores,
-      retos_completados: RETOS.length,
-    },
+    respuestas: pilot.evidence(),
   });
 
   const tiempo = useMemo(() => {
@@ -952,13 +969,14 @@ function Actividad4MathGeometry() {
 
     setModalReproduciendo(false);
     setModal(null);
-    setSeleccion(null);
     setRevision("pendiente");
     setTextoSombra(TEXTO_INICIAL_SOMBRA);
     setIndiceSombraActivo(-1);
     setProgresoSombraActivo(0);
     setReinicioModal((valor) => valor + 1);
-  };
+  
+ mission.beginCorrection();
+};
 
   const reiniciarSombra = () => {
     const audio = audioSombraRef.current;
@@ -1119,7 +1137,8 @@ function Actividad4MathGeometry() {
 
     if (retoCelebrado >= RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1221,8 +1240,9 @@ function Actividad4MathGeometry() {
 
   const comprobar = () => {
     if (!seleccion || pausado || aciertoEspecial !== null) return;
+    pilot.recordNative(retoActual,seleccion);
 
-    if (seleccion === reto.correcta) {
+    if ((reto.correctas ?? [reto.correcta]).includes(seleccion)) {
       setRevision("correcto");
 
       const configuracionAcierto = ACIERTOS_ESPECIALES_ACT4[retoActual];
@@ -1247,7 +1267,8 @@ function Actividad4MathGeometry() {
 
     if (retoActual === RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1257,6 +1278,8 @@ function Actividad4MathGeometry() {
   };
 
   const reiniciar = () => {
+    mission.reset();
+    pilot.resetSession();
     setRetoActual(0);
     setSeleccion(null);
     setRevision("pendiente");
@@ -1327,7 +1350,7 @@ function Actividad4MathGeometry() {
         : "Mensaje de Sombra";
 
   return (
-    <main className="act4geo-page">
+    <main className="act4geo-page mn-activity">
       <button
         type="button"
         className={`act4geo-hamburger-btn ${
@@ -1409,48 +1432,16 @@ function Actividad4MathGeometry() {
           </button>
         </nav>
 
-        <div className="act4geo-sidebar-progress-area">
-          <article className="act4geo-side-week-card">
-            <div className="act4geo-side-week-head">
-              <strong>Progreso semanal</strong>
-              <span>Nivel 3</span>
-            </div>
-
-            <div className="act4geo-side-progress">
-              <span>★</span>
-              <div>
-                <b style={{ width: "60%" }} />
-              </div>
-              <strong>60%</strong>
-            </div>
-          </article>
-        </div>
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathgeometry-actividad-4"].objective}</strong></div>
       </aside>
 
       <section className="act4geo-content">
         <img src={heroBanner} alt="Banner Actividad 4" className="act4geo-bg" />
 
         <section className="act4geo-main">
-          <div className="act4geo-breadcrumb">
-            <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
-              Mundos
-            </button>
+        <CabeceraCurricular curriculum={activityCurriculum["mathgeometry-actividad-4"]} />
+        
 
-            <span>›</span>
-
-            <button
-              type="button"
-              onClick={() => irARuta("/actividades/geometria")}
-            >
-              Actividades MathGeometry
-            </button>
-
-            <span>›</span>
-
-            <button type="button" className="act4geo-breadcrumb-current">
-              Act 4
-            </button>
-          </div>
 
           <header className="act4geo-topbar">
             <div className="act4geo-title-area">
@@ -1577,7 +1568,8 @@ function Actividad4MathGeometry() {
             </div>
           </section>
 
-          <div className="act4geo-layout">
+          <EnsayoOtrosMundos activityId="mathgeometry-actividad-4"/>
+<div className="act4geo-layout">
             <section className="act4geo-game-card">
               <div className="act4geo-challenge-head">
                 <span>
@@ -1605,7 +1597,7 @@ function Actividad4MathGeometry() {
                 {reto.opciones.map((opcion, index) => {
                   const seleccionada = seleccion === opcion.id;
                   const correcta =
-                    revision === "correcto" && opcion.id === reto.correcta;
+                    revision === "correcto" && opcion.id === seleccion;
 
                   return (
                     <button
@@ -1727,6 +1719,8 @@ function Actividad4MathGeometry() {
               </article>
             </aside>
           </div>
+ 
+
 
           <section className="act4geo-bottom-stats">
             <article>
@@ -1763,7 +1757,9 @@ function Actividad4MathGeometry() {
               </div>
             </article>
           </section>
-        </section>
+        <PilotEvidenceStatus pilot={pilot}/>
+        <ContinuacionDeMision expansion={mission} onComplete={()=>{setModal("completado");}} onRestart={reiniciar}/>
+</section>
 
         <footer className="act4geo-footer">
           <div className="act4geo-footer-icons">
@@ -1928,7 +1924,7 @@ function Actividad4MathGeometry() {
               />
             )}
 
-            <div className="act4geo-modal-content">
+            <div className="act4geo-modal-content"><AudioRetroalimentacion/>
               <span className="act4geo-modal-badge">
                 <FiVolume2 />
                 {modal === "profesor"
@@ -2107,6 +2103,8 @@ function Actividad4MathGeometry() {
 
               {modal === "sombra" && (
                 <div className="act4geo-modal-script-lines act4geo-sombra-script-lines">
+ <DetalleErroresDeMision items={[...(RETOS.map((r,i)=>({id:`native-${i}`,title:i===retoActual?reto.pregunta:`Reto geométrico ${i+1}`,answer:i===retoActual?(reto.opciones.find(o=>o.id===seleccion)?.texto||"Sin respuesta"):i<completados?"Validado en la misión":"",correct:i<completados?true:i===retoActual?Boolean(seleccion && (reto.correctas ?? [reto.correcta]).includes(seleccion)):null,hint:i===retoActual?`Revisa la propiedad indicada en el reto. Opciones válidas: ${reto.opciones.filter(o=>(reto.correctas ?? [reto.correcta]).includes(o.id)).map(o=>o.texto).join(" o ")}. Consulta la pista para justificarla.`:"Puedes consultar la pista del personaje cuando llegues a este reto.",target:".act4geo-layout"})).filter((_,i)=>i<=retoActual)),...mission.items]} onCorrect={(item)=>{setModal(null); setRevision("pendiente"); audioSombraRef.current?.pause(); mission.beginCorrection(item);}} onRestart={reiniciar}/>
+
                   {GUION_SOMBRA_ERROR.map((linea, indice) => (
                     <p
                       key={linea}
@@ -2193,7 +2191,7 @@ function Actividad4MathGeometry() {
               }}
             />
 
-            <div className="act4geo-complete-content">
+            <div className="act4geo-complete-content"><AudioRetroalimentacion/>
               <span>🏆 Actividad completada</span>
               <h2>¡Misión completada!</h2>
 
@@ -2235,7 +2233,7 @@ function Actividad4MathGeometry() {
                 <article>
                   <FiCheck />
                   <span>Aciertos</span>
-                  <strong>6/6</strong>
+                  <strong>{mission.total}/{mission.total}</strong>
                 </article>
                 <article>
                   <FiTarget />

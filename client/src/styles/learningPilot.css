@@ -1,0 +1,61 @@
+.mn-curriculum,.mn-explorer{box-sizing:border-box;background:#fff;border:1px solid hsl(212 29% 85%);border-radius:20px;padding:24px;color:hsl(214 38% 20%);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.6;min-width:0}
+.mn-curriculum{border-top:4px solid hsl(219 62% 49%)}
+.mn-curriculum-meta{display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;color:hsl(216 41% 35%);font-size:.86rem;font-weight:650}
+.mn-curriculum h2,.mn-explorer h2{font-size:clamp(1.35rem,2.4vw,1.8rem);line-height:1.25;margin:12px 0 18px;letter-spacing:-.025em;color:hsl(216 49% 24%)}
+.mn-curriculum dl{margin:0;display:grid;gap:14px}.mn-curriculum dt{font-size:.86rem;font-weight:700;color:hsl(215 28% 36%)}.mn-curriculum dd{margin:4px 0 0;font-size:1rem}.mn-curriculum dd p{margin:0}.mn-curriculum-objective{padding:14px 16px;background:hsl(213 66% 96%);border-radius:12px}.mn-curriculum a{display:inline-block;margin-top:16px;color:hsl(218 66% 36%);font-size:.84rem;text-underline-offset:3px;overflow-wrap:anywhere}
+.mn-explorer-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}.mn-explorer h2{margin:4px 0 0}.mn-eyebrow{font-size:.8rem;color:#475e7a;font-weight:700}.mn-equation{font-size:1.2rem;font-weight:700;padding:10px 16px;background:#edf3fc;border-radius:12px}.mn-explorer-controls{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:22px 0}.mn-explorer-controls label{display:flex;flex-direction:column;gap:8px;font-weight:600}.mn-explorer input[type=range]{width:100%;min-height:36px;accent-color:#295fc0}.mn-explorer select{font:inherit;padding:9px;border:1px solid #b5c5d6;border-radius:8px;background:white;color:inherit}.mn-explorer-representations{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:24px;align-items:center}.mn-explorer svg{width:100%;max-height:280px;background:#f8fafc;border-radius:12px}.mn-explorer svg text{font-size:11px;fill:#40556e}.mn-explorer table{width:100%;border-collapse:collapse;text-align:center}.mn-explorer th,.mn-explorer td{border-bottom:1px solid #dae3ed;padding:7px}.mn-explorer caption{font-size:.9rem;padding-bottom:10px}.mn-explorer-observation{border-left:3px solid #295fc0;background:#f0f5fc;padding:14px 16px}.mn-explorer-question{font-size:.94rem}.mn-explorer button{background:#f1f5fa;border:1px solid #b6c7da;border-radius:10px;color:#233c5c;font:inherit;font-weight:600;padding:10px 15px;cursor:pointer}.mn-explorer button:hover{background:#e3ecf8}.mn-explorer :focus-visible,.mn-curriculum :focus-visible{outline:3px solid #2c65cc;outline-offset:3px}
+/* El piloto se limita a Rampas; las demás pantallas conservan su diseño. */
+.rmp-page.mn-pilot{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:hsl(214 42% 96%);color:#203650}.mn-pilot .rmp-main{gap:22px;padding:24px 32px 44px;max-width:1450px;margin-inline:auto}.mn-pilot .rmp-sidebar{background:hsl(216 42% 19%);border:0;color:white;width:230px}.mn-pilot .rmp-nav-item{color:#e8eff8;font-weight:550;border-radius:10px}.mn-pilot .rmp-nav-item:hover,.mn-pilot .rmp-nav-item-activo{background:#314c74;color:white}.mn-pilot .rmp-sidebar-label,.mn-pilot .rmp-sidebar-sub{color:#dce7f8}.mn-pilot .rmp-top-row{background:white;border:1px solid #d7e2ec;border-radius:20px;padding:22px;gap:18px}.mn-pilot .rmp-titulo-row h1{font-size:1.3rem}.mn-pilot .rmp-robot-avatar-img{max-width:120px;object-fit:contain}.mn-pilot .rmp-bitacora-card{box-shadow:none;border-color:#d7e2ec;border-radius:18px}.mn-pilot button{font-family:inherit}.mn-pilot button:focus-visible,.mn-pilot input:focus-visible{outline:3px solid #2864cc;outline-offset:3px}
+@media(max-width:900px){.mn-pilot .rmp-sidebar{width:200px}.mn-pilot .rmp-main{padding:20px}.mn-explorer-representations{gap:15px}}
+@media(max-width:720px){.mn-pilot .rmp-sidebar{display:none}.mn-pilot .rmp-main{padding:14px;width:100%}.mn-curriculum,.mn-explorer{padding:18px;border-radius:16px}.mn-explorer-controls,.mn-explorer-representations{grid-template-columns:1fr}.mn-pilot .rmp-header-izquierda{flex-wrap:wrap}.mn-pilot .rmp-top-row{padding:16px}.mn-pilot .rmp-centro-control{width:100%}.mn-pilot .rmp-robot-avatar-img{display:none}}
+@media(prefers-reduced-motion:reduce){.mn-pilot *,.mn-pilot *::before,.mn-pilot *::after{animation:none!important;transition:none!important}.mn-pilot .rmp-cohetes-bienvenida{display:none}}
+
+/* Menú de Rampas: una sola página y un solo desplazamiento. */
+.rmp-page.mn-pilot .rmp-sidebar {
+  position: static;
+  top: auto;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+  align-self: stretch;
+  gap: 18px;
+}
+.rmp-page.mn-pilot .rmp-sidebar > * { flex-shrink: 0; }
+.rmp-page.mn-pilot .rmp-sidebar-villano { margin-top: 0; }
+.rmp-page.mn-pilot .rmp-logo-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  padding: 10px;
+  background: hsl(0 0% 100%);
+  border-radius: 14px;
+}
+.rmp-page.mn-pilot .rmp-sidebar-xp .rmp-sidebar-label,
+.rmp-page.mn-pilot .rmp-sidebar-tiempo .rmp-sidebar-label {
+  color: hsl(215 28% 36%);
+}
+.rmp-page.mn-pilot .rmp-sidebar-icons button {
+  color: hsl(213 90% 84%);
+  min-width: 44px;
+  min-height: 44px;
+}
+@media (max-width: 1024px) {
+  .rmp-page.mn-pilot .rmp-sidebar {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 16px;
+  }
+  .rmp-page.mn-pilot .rmp-nav { width: 100%; gap: 6px; }
+  .rmp-page.mn-pilot .rmp-nav-item { flex: 1 1 180px; }
+  .rmp-page.mn-pilot .rmp-nav-item span { display: inline; }
+  .rmp-page.mn-pilot .rmp-sidebar-villano { width: auto; flex: 1 1 200px; }
+  .rmp-page.mn-pilot .rmp-sidebar-xp,
+  .rmp-page.mn-pilot .rmp-sidebar-tiempo { flex: 1 1 180px; }
+  .rmp-page.mn-pilot .rmp-sidebar-icons { margin-top: 0; gap: 10px; }
+}
+@media (max-width: 720px) {
+  .rmp-page.mn-pilot .rmp-nav-item { flex-basis: 140px; padding: 12px; font-size: .85rem; }
+}

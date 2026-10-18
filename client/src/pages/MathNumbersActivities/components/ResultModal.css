@@ -25,13 +25,13 @@
 .result-modal {
   position: relative;
 
-  width: min(1220px, 96vw);
-  max-height: min(760px, 92vh);
+  width: min(1120px, 100%);
+  max-height: calc(100dvh - 32px);
 
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
+  grid-template-columns: minmax(0, 1fr) 260px;
 
-  overflow: hidden;
+  overflow: auto;
 
   border: 2px solid #f5b63b;
   border-radius: 34px;
@@ -113,9 +113,9 @@
   align-content: start;
   gap: 20px;
 
-  padding: 42px 26px 28px 38px;
+  padding: 28px 24px;
 
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .result-modal-header {
@@ -125,20 +125,20 @@
 }
 
 .result-modal-status-icon {
-  width: 84px;
-  min-width: 84px;
-  height: 84px;
+  width: 58px;
+  min-width: 58px;
+  height: 58px;
 
   display: grid;
   place-items: center;
 
-  border: 10px solid rgba(34, 197, 94, 0.16);
+  border: 6px solid rgba(34, 197, 94, 0.16);
   border-radius: 50%;
 
   background: #22c55e;
   color: #ffffff;
 
-  font-size: 46px;
+  font-size: 32px;
 
   box-shadow: 0 14px 30px rgba(34, 197, 94, 0.22);
 }
@@ -171,7 +171,7 @@
 
   color: #0f172a;
 
-  font-size: clamp(2.1rem, 4vw, 3.7rem);
+  font-size: clamp(1.65rem, 3vw, 2.5rem);
   font-weight: 950;
   line-height: 1;
   letter-spacing: -0.045em;
@@ -189,13 +189,13 @@
 
 .result-modal-content {
   display: grid;
-  grid-template-columns: 235px minmax(0, 1fr);
+  grid-template-columns: minmax(100px, 150px) minmax(0, 1fr);
   align-items: center;
   gap: 22px;
 }
 
 .result-modal-character {
-  height: 245px;
+  height: 165px;
 
   display: grid;
   place-items: center;
@@ -222,13 +222,13 @@
 }
 
 .result-modal-message {
-  min-height: 190px;
+  min-height: 0;
 
   display: flex;
   flex-direction: column;
   justify-content: center;
 
-  padding: 26px 28px;
+  padding: 18px;
 
   border: 2px solid #ffd27d;
   border-radius: 30px;
@@ -311,7 +311,7 @@
   display: grid;
   grid-template-columns: repeat(
     auto-fit,
-    minmax(150px, 1fr)
+    minmax(min(100%, 135px), 1fr)
   );
   gap: 12px;
 }
@@ -390,7 +390,7 @@
   display: flex;
   flex-direction: column;
 
-  padding: 74px 24px 28px;
+  padding: 76px 18px 24px;
 
   border-left: 1px solid rgba(245, 182, 59, 0.28);
 
@@ -509,7 +509,7 @@
 
 .result-modal-action {
   width: 100%;
-  min-height: 62px;
+  min-height: 44px;
 
   display: flex;
   align-items: center;
@@ -716,302 +716,38 @@
     padding-inline: 18px;
   }
 }
-/* =====================================================
-   MODAL COMPACTO
-   Agregar al final de ResultModal.css
-===================================================== */
 
-.result-modal {
-  width: min(1120px, 93vw);
-  max-height: 88vh;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  border-radius: 28px;
+/* La imagen y el mensaje siempre conservan su propia celda. */
+.result-modal-main, .result-modal-side, .result-modal-content > * { min-width: 0; }
+.result-modal-main, .result-modal-side { min-height: 0; overflow: visible; }
+.result-modal-character img { display: block; max-width: 100%; max-height: 100%; }
+.result-modal-content { align-items: center; }
+.result-modal-stats { gap: 8px; }
+.result-modal-stat { padding: 10px; gap: 8px; }
+.result-modal-stat span { white-space: normal; text-overflow: clip; overflow: visible; }
+.result-modal-stat strong { font-size: 1.1rem; overflow-wrap: anywhere; }
+.result-modal-stat-icon { width: 32px; min-width: 32px; height: 32px; }
+.result-modal-stat-icon img { width: 26px; height: 26px; }
+.result-modal-side-message { padding: 14px; }
+.result-modal-close { width: 44px; height: 44px; top: 14px; right: 14px; font-size: 24px; }
+@media (max-width: 1000px) {
+  .result-modal-main { padding-top: 68px; }
+  .result-modal-side { padding: 18px 24px 24px; }
+  .result-modal-actions { grid-template-columns: repeat(auto-fit,minmax(min(100%,170px),1fr)); }
+}
+@media (max-width: 720px) {
+  .result-modal-content { grid-template-columns: minmax(0,1fr); }
+  .result-modal-character { height: 140px; }
+  .result-modal-character img { width: auto; height: 100%; max-width: 100%; }
+  .result-modal-message { width: 100%; }
+  .result-modal-actions { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-height: 500px) {
+  .result-modal { grid-template-columns: minmax(0,1fr); }
+  .result-modal-main { padding-top: 68px; }
+  .result-modal-side { padding: 16px 24px; border-left: 0; border-top: 1px solid #fde68a; }
+  .result-modal-character { height: 100px; }
+  .result-modal-character img { max-height: 100px; }
 }
 
-.result-modal::before {
-  inset: 12px;
-  border-radius: 21px;
-}
-
-/* Botón cerrar más pequeño */
-
-.result-modal-close {
-  top: 14px;
-  right: 14px;
-
-  width: 42px;
-  height: 42px;
-
-  font-size: 24px;
-}
-
-/* Contenido principal más compacto */
-
-.result-modal-main {
-  gap: 13px;
-  padding: 25px 20px 20px 28px;
-}
-
-/* Encabezado */
-
-.result-modal-header {
-  gap: 14px;
-}
-
-.result-modal-status-icon {
-  width: 64px;
-  min-width: 64px;
-  height: 64px;
-
-  border-width: 7px;
-  font-size: 34px;
-}
-
-.result-modal-badge {
-  margin-bottom: 6px;
-  padding: 6px 13px;
-
-  font-size: 0.78rem;
-}
-
-.result-modal-header-copy h1 {
-  font-size: clamp(2rem, 3.5vw, 3.05rem);
-  line-height: 0.98;
-}
-
-.result-modal-header-copy p {
-  margin-top: 7px;
-
-  font-size: 0.9rem;
-  line-height: 1.35;
-}
-
-/* Personaje y mensaje */
-
-.result-modal-content {
-  grid-template-columns: 185px minmax(0, 1fr);
-  gap: 16px;
-}
-
-.result-modal-character {
-  height: 170px;
-  border-radius: 22px;
-}
-
-.result-modal-character img {
-  max-width: 175px;
-  max-height: 165px;
-}
-
-.result-modal-message {
-  min-height: 145px;
-  padding: 18px 21px;
-  border-radius: 24px;
-}
-
-.result-modal-message-label {
-  margin-bottom: 7px;
-  padding: 5px 10px;
-
-  font-size: 0.68rem;
-}
-
-.result-modal-message h2 {
-  margin-bottom: 7px;
-
-  font-size: clamp(1.25rem, 2vw, 1.7rem);
-}
-
-.result-modal-message p {
-  font-size: 0.88rem;
-  line-height: 1.4;
-}
-
-/* Resumen más pequeño */
-
-.result-modal-summary {
-  padding: 14px;
-  border-radius: 20px;
-}
-
-.result-modal-summary > header {
-  gap: 8px;
-  margin-bottom: 11px;
-}
-
-.result-modal-summary > header svg {
-  font-size: 22px;
-}
-
-.result-modal-summary h2 {
-  font-size: 1.15rem;
-}
-
-.result-modal-stats {
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(120px, 1fr)
-  );
-  gap: 8px;
-}
-
-.result-modal-stat {
-  gap: 8px;
-  min-height: 78px;
-  padding: 9px;
-  border-radius: 15px;
-}
-
-.result-modal-stat-icon {
-  width: 40px;
-  min-width: 40px;
-  height: 40px;
-
-  border-radius: 12px;
-}
-
-.result-modal-stat-icon img {
-  width: 29px;
-  height: 29px;
-}
-
-.result-modal-stat span {
-  font-size: 0.65rem;
-}
-
-.result-modal-stat strong {
-  font-size: 1.05rem;
-}
-
-.result-modal-stat small {
-  font-size: 0.62rem;
-}
-
-/* Columna derecha */
-
-.result-modal-side {
-  padding: 58px 17px 20px;
-  overflow-y: auto;
-}
-
-.result-modal-side-message {
-  padding: 15px;
-  border-radius: 18px;
-}
-
-.result-modal-side-message span {
-  margin-bottom: 7px;
-  font-size: 0.75rem;
-}
-
-.result-modal-side-message strong {
-  margin-bottom: 6px;
-  font-size: 1rem;
-}
-
-.result-modal-side-message p {
-  font-size: 0.76rem;
-  line-height: 1.35;
-}
-
-/* Progreso */
-
-.result-modal-progress {
-  margin-top: 12px;
-  padding: 12px;
-  border-radius: 16px;
-}
-
-.result-modal-progress > div:first-child {
-  margin-bottom: 7px;
-}
-
-.result-modal-progress span {
-  font-size: 0.73rem;
-}
-
-.result-modal-progress strong {
-  font-size: 0.85rem;
-}
-
-.result-modal-progress-bar {
-  height: 9px;
-}
-
-/* Botones */
-
-.result-modal-actions {
-  gap: 9px;
-  padding-top: 15px;
-}
-
-.result-modal-action {
-  min-height: 50px;
-  gap: 9px;
-  padding: 9px 12px;
-
-  border-radius: 14px;
-
-  font-size: 0.85rem;
-}
-
-.result-modal-action svg {
-  width: 18px;
-  height: 18px;
-}
-
-/* Ajuste para pantallas con poca altura */
-
-@media (max-height: 780px) and (min-width: 1001px) {
-  .result-modal {
-    max-height: 94vh;
-  }
-
-  .result-modal-main {
-    gap: 9px;
-    padding-top: 18px;
-    padding-bottom: 14px;
-  }
-
-  .result-modal-status-icon {
-    width: 56px;
-    min-width: 56px;
-    height: 56px;
-
-    font-size: 29px;
-  }
-
-  .result-modal-header-copy h1 {
-    font-size: 2.45rem;
-  }
-
-  .result-modal-character {
-    height: 145px;
-  }
-
-  .result-modal-character img {
-    max-height: 140px;
-  }
-
-  .result-modal-message {
-    min-height: 125px;
-    padding: 15px 18px;
-  }
-
-  .result-modal-summary {
-    padding: 11px;
-  }
-
-  .result-modal-stat {
-    min-height: 68px;
-    padding: 7px;
-  }
-
-  .result-modal-side {
-    padding-top: 52px;
-  }
-
-  .result-modal-action {
-    min-height: 46px;
-  }
-}
+.result-modal-stat { flex-direction: column; align-items: flex-start; gap: 6px; }

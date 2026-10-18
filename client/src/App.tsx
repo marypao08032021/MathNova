@@ -1,3 +1,11 @@
+import LiveClassroom from './pages/Seguimiento/LiveClassroom';
+import CuentaPage from "./pages/Seguimiento/CuentaPage";
+import AyudaDocente from "./pages/Seguimiento/AyudaDocente";
+import MathNovaShell from "./components/MathNovaShell";
+import AvisosDocente from "./pages/AvisosDocente/AvisosDocente";
+import AulaDocente from "./pages/AulaDocente/AulaDocente";
+import Superusuario from "./pages/Admin/Superusuario/SuperusuarioPage";
+import TesterBanner from "./components/TesterBanner";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import RequireAuth from "./routes/RequireAuth";
@@ -46,7 +54,6 @@ import AdministrarAlumnosDocente from "./pages/AdministrarAlumnosDocente/Adminis
 import ListaAlumnosDocente from "./pages/ListaAlumnosDocente/ListaAlumnosDocente";
 import CalificacionesDocente from "./pages/CalificacionesDocente/CalificacionesDocente";
 import GestionDocentes from "./pages/GestionDocentes/GestionDocentes";
-import ActividadesDocente from "./pages/ActividadesDocente/ActividadesDocente";
 import RetroalimentacionDocente from "./pages/RetroalimentacionDocente/RetroalimentacionDocente";
 import EvaluacionesDocente from "./pages/EvaluacionesDocente/EvaluacionesDocente";
 import EstadisticasDocente from "./pages/EstadisticasDocente/EstadisticasDocente";
@@ -150,9 +157,15 @@ function StartupRedirect() {
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
+      <TesterBanner/>
+      <MathNovaShell><Routes>
         <Route path="/" element={<StartupRedirect />} />
+        <Route path="/monitor-aula" element={<RequireAuth rolesPermitidos={["docente","admin"]}><LiveClassroom/></RequireAuth>}/>
         <Route path="/login" element={<Login />} />
+<Route path="/cuenta" element={<RequireAuth rolesPermitidos={["estudiante","docente","admin"]}><CuentaPage/></RequireAuth>}/>
+<Route path="/configuracion" element={<RequireAuth rolesPermitidos={["estudiante","docente","admin"]}><CuentaPage/></RequireAuth>}/>
+<Route path="/solicitudes-ayuda" element={<RequireAuth rolesPermitidos={["docente","admin"]}><AyudaDocente/></RequireAuth>}/>
+        <Route path="/avisos-docente" element={<RequireAuth rolesPermitidos={["docente","admin"]}><AvisosDocente/></RequireAuth>}/>
 
         <Route
           path="/dashboard"
@@ -461,7 +474,7 @@ function App() {
           path="/actividades-docente"
           element={
             <RequireAuth rolesPermitidos={["docente"]}>
-              <ActividadesDocente />
+              <AulaDocente />
             </RequireAuth>
           }
         />
@@ -497,6 +510,8 @@ function App() {
           element={<AvanceActividadDocente />}
         />
 
+        <Route path="/admin/superusuario" element={<RequireAuth rolesPermitidos={["admin"]}><Superusuario/></RequireAuth>}/>
+        <Route path="/admin/usuarios" element={<RequireAuth rolesPermitidos={["admin"]}><Superusuario/></RequireAuth>}/>
         <Route
           path="/admin"
           element={<Navigate to="/dashboard-admin" replace />}
@@ -571,7 +586,7 @@ function App() {
         />
 
         <Route path="*" element={<StartupRedirect />} />
-      </Routes>
+      </Routes></MathNovaShell>
     </BrowserRouter>
   );
 }

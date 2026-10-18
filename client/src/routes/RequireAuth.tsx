@@ -1,3 +1,6 @@
+import catalogoAula from "../curriculum/aulaCatalog.json";
+import AulaActivityGate from "../components/AulaActivityGate";
+import {isTesterSession} from "../utils/testerSession";
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import {
@@ -61,6 +64,7 @@ const normalizarRol = (rol?: string, roleId?: number | string) => {
 
 const puedeEntrarPorRol = (rolUsuario: string, rolesPermitidos: string[]) => {
   if (!rolUsuario) return false;
+  if (rolUsuario === "admin") return true;
 
   if (rolesPermitidos.includes(rolUsuario)) {
     return true;
@@ -150,10 +154,18 @@ export default function RequireAuth({
     usuario?.role_id || usuario?.roleId || usuario?.id_rol
   );
 
+  const tester = isTesterSession();
+  const learnerPath = /^\/(dashboard$|seleccion-mundos$|perfil-alumno$|estadisticas$|retroalimentacion$|recompensas$|actividades\/(?:geometria|mathnumbers)(?:\/|$)|actividades-math-(?:data|numbers)(?:\/|$)|temas\/)/i.test(location.pathname);
+  if (["docente", "docente_estudiante"].includes(rolUsuario) && learnerPath && !tester) {
+    return <Navigate to="/dashboard-docente" replace/>;
+  }
+  if (tester && !learnerPath) {
+    return <Navigate to="/dashboard" replace/>;
+  }
   if (rolesPermitidos && rolesPermitidos.length > 0) {
     const rolesNormalizados = rolesPermitidos.map((rol) => normalizarRol(rol));
     const rolParaValidar =
-      rolUsuario ||
+      (tester ? "estudiante" : rolUsuario) ||
       (rolesNormalizados.includes("estudiante") ? "estudiante" : "");
 
     if (!puedeEntrarPorRol(rolParaValidar, rolesNormalizados)) {
@@ -175,5 +187,8 @@ export default function RequireAuth({
     }
   }
 
-  return <>{children}</>;
+  let path=location.pathname;
+  try{path=decodeURIComponent(path)}catch{/* Una URL no válida no identifica una misión. */}
+  const activity=catalogoAula.find(a=>a.ruta===path.toLowerCase().replace(/\/+$/, ""));
+  return activity?<AulaActivityGate codigo={activity.codigo}>{children}</AulaActivityGate>:<>{children}</>;
 }

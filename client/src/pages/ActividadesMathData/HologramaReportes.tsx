@@ -1,10 +1,19 @@
+import useMathDataEvidence from "../../hooks/useMathDataEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import CierreDeMision from "../../components/CierreDeMision";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import RetosDeMision from "../../components/RetosDeMision";
+import DetalleErroresDeMision, {type MissionReviewItem} from "../../components/DetalleErroresDeMision";
+import AvisoActividad from "../../components/AvisoActividad";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getSessionUser } from "../../utils/authSession";
-import {
-  guardarProgresoUsuarioActual,
-} from "../../services/progresoService";
 
 import logo from "../../assets/logo_MathNova.png";
 import fondoHologramaImg from "../../assets/fondo-holograma.png";
@@ -471,18 +480,16 @@ function ResultAudioPlayer({ src }: { src?: string }) {
     audio.currentTime = 0;
     audio.volume = 1;
 
+    let resultPlaybackActive = true;
     const playPromise = audio.play();
-
     if (playPromise !== undefined) {
       playPromise.catch((error) => {
-        console.warn(
-          "El audio del resultado no pudo iniciarse automáticamente:",
-          error,
-        );
+        if (!resultPlaybackActive || error?.name === "AbortError") return;
+        console.warn("El audio del resultado no pudo iniciarse automáticamente:", error);
       });
     }
-
     return () => {
+      resultPlaybackActive = false;
       audio.pause();
       audio.currentTime = 0;
     };
@@ -567,6 +574,8 @@ function ResultAudioPlayer({ src }: { src?: string }) {
 ========================================================= */
 
 export default function HologramaReportes() {
+ const mission=useMissionExpansion("mathdata-holograma-reportes");
+  const [avisoActividad, setAvisoActividad] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const ID_ESTUDIANTE =
@@ -721,8 +730,9 @@ export default function HologramaReportes() {
   // ==========================================
 
   const verificarBarras = async () => {
+    pilot.recordAll();
     if (!ID_ESTUDIANTE) {
-      alert(
+      setAvisoActividad(
         "No se encontró tu sesión. Inicia sesión nuevamente.",
       );
       return;
@@ -770,8 +780,9 @@ export default function HologramaReportes() {
   // ==========================================
 
   const verificarCirculo = async () => {
+    pilot.recordAll();
     if (!ID_ESTUDIANTE) {
-      alert(
+      setAvisoActividad(
         "No se encontró tu sesión. Inicia sesión nuevamente.",
       );
       return;
@@ -824,227 +835,17 @@ export default function HologramaReportes() {
   // ACTIVAR HOLOGRAMA
   // ==========================================
 
+  const pilot=useMathDataEvidence("mathdata-holograma-reportes",mission,()=>({tipo_grafica:tipoGrafica,alturas_barras:alturaBarras,porcentajes,pregunta_barra_alta:preguntaBarraAlta,pregunta_sector_mayor:preguntaSectorMayor}));
+  useEffect(()=>{const attempt=pilot.receipt?.intento_piloto;if(!attempt)return;
+    setResultado(attempt.evaluacion.completada?"exito":"fallo");
+  },[pilot.receipt]);
+
   const activarHolograma = async () => {
-    if (
-      !tipoGrafica ||
-      !preguntaBarraAlta ||
-      !preguntaSectorMayor ||
-      cargandoActivar ||
-      guardandoProgresoRef.current
-    ) {
-      return;
-    }
-
-    if (!ID_ESTUDIANTE) {
-      alert(
-        "No se encontró tu sesión. Inicia sesión nuevamente.",
-      );
-      return;
-    }
-
+    if(pilot.busy)return;
     setCargandoActivar(true);
-    guardandoProgresoRef.current =
-      true;
-
-    try {
-      const response = await fetch(
-        `${API_URL}/holograma/activar`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            id_estudiante:
-              ID_ESTUDIANTE,
-            tipo_grafica:
-              tipoGrafica,
-            pregunta_barra_alta:
-              preguntaBarraAlta,
-            pregunta_sector_mayor:
-              preguntaSectorMayor,
-          }),
-        },
-      );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.mensaje ||
-            data?.message ||
-            `HTTP ${response.status}`,
-        );
-      }
-
-      if (data.success && data.data) {
-        const correcto =
-          Boolean(
-            data.data.correcto,
-          );
-
-        const modulos =
-          [
-            "bosque",
-            "desierto",
-            "cueva",
-          ] as Modulo[];
-
-        const barrasCorrectas =
-          modulos.every(
-            (modulo) =>
-              barraEstados[
-                modulo
-              ] === "correcto",
-          );
-
-        const porcentajesCorrectos =
-          modulos.every(
-            (modulo) =>
-              porcentajeEstados[
-                modulo
-              ] === "correcto",
-          );
-
-        const interpretacionCorrecta =
-          preguntaBarraAlta ===
-            "bosque" &&
-          preguntaSectorMayor ===
-            "bosque";
-
-        /*
-         * La actividad se resume en cuatro pasos:
-         * 1) tipo de gráfica,
-         * 2) barras,
-         * 3) porcentajes,
-         * 4) interpretación.
-         */
-        const aciertosCalculados =
-          Number(
-            tipoGrafica ===
-              "barras",
-          ) +
-          Number(
-            barrasCorrectas,
-          ) +
-          Number(
-            porcentajesCorrectos,
-          ) +
-          Number(
-            interpretacionCorrecta,
-          );
-
-        const aciertosUnificados =
-          correcto
-            ? 4
-            : aciertosCalculados;
-
-        const tiempoSegundos =
-          Math.max(
-            1,
-            Math.floor(
-              (
-                Date.now() -
-                inicioActividadRef.current
-              ) / 1000,
-            ),
-          );
-
-        try {
-          const progresoUnificado =
-            await guardarProgresoUsuarioActual({
-              mundo: "MathData",
-              tema:
-                "Representación e interpretación de datos",
-              actividad_codigo:
-                "mathdata-holograma-reportes",
-              actividad_titulo:
-                "El Holograma de Reportes",
-              respuestas: {
-                tipo_grafica:
-                  tipoGrafica,
-                alturas_barras:
-                  Object.fromEntries(
-                    modulos.map(
-                      (modulo) => [
-                        modulo,
-                        Number(
-                          alturaBarras[
-                            modulo
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                porcentajes:
-                  Object.fromEntries(
-                    modulos.map(
-                      (modulo) => [
-                        modulo,
-                        Number(
-                          porcentajes[
-                            modulo
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                pregunta_barra_alta:
-                  preguntaBarraAlta,
-                pregunta_sector_mayor:
-                  preguntaSectorMayor,
-              },
-              aciertos:
-                aciertosUnificados,
-              total_preguntas: 4,
-              tiempo_segundos:
-                tiempoSegundos,
-              xp_base: 50,
-              completada:
-                correcto,
-            });
-
-          console.log(
-            "Progreso del Holograma de Reportes guardado:",
-            progresoUnificado.progreso,
-          );
-        } catch (
-          progresoError
-        ) {
-          console.error(
-            "La actividad se validó, pero no se pudo registrar en el progreso unificado:",
-            progresoError,
-          );
-        }
-
-        inicioActividadRef.current =
-          Date.now();
-
-        setResultado(
-          correcto
-            ? "exito"
-            : "fallo",
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Error al activar el holograma:",
-        error,
-      );
-
-      const mensaje =
-        error instanceof Error
-          ? error.message
-          : "Error al conectar con el servidor.";
-
-      alert(`❌ ${mensaje}`);
-    } finally {
-      setCargandoActivar(false);
-      guardandoProgresoRef.current =
-        false;
-    }
+    try {await pilot.finish(Math.max(1,Math.floor((Date.now()-inicioActividadRef.current)/1000)),50);}
+    catch(error){setAvisoActividad(error instanceof Error?error.message:"No se pudo guardar; conserva esta pestaña.");}
+    finally{setCargandoActivar(false);}
   };
 
   // ==========================================
@@ -1070,6 +871,8 @@ export default function HologramaReportes() {
   // ==========================================
 
   const handleReiniciarActividad = async () => {
+ mission.reset();
+ pilot.resetSession();
     try {
       await fetch(`${API_URL}/holograma/reiniciar`, {
         method: "POST",
@@ -1104,7 +907,12 @@ export default function HologramaReportes() {
   // VENTANA EMERGENTE: ACTIVIDAD COMPLETADA
   // ==========================================
 
-  if (resultado === "exito") return (
+  
+ const missionNativeItems:MissionReviewItem[]=[{id:"tipo",title:"Tipo de gráfica",answer:String(tipoGrafica),correct:tipoGrafica==="barras",hint:"Para comparar las frecuencias de los módulos usa barras.",target:'[data-review-target="native-tipo"]'},{id:"barras",title:"Alturas de las barras",answer:String(JSON.stringify(alturaBarras)),correct:(Object.keys(FRECUENCIAS) as Modulo[]).every(m=>Number(alturaBarras[m])===FRECUENCIAS[m]),hint:"Compara cada altura con los datos: Bosque 4, Desierto 3, Cueva 3.",target:'[data-review-target="native-barras"]'},{id:"porcentajes",title:"Sectores del holograma",answer:String(JSON.stringify(porcentajes)),correct:(Object.keys(FRECUENCIAS) as Modulo[]).every(m=>Number(porcentajes[m])===PORCENTAJES_CORRECTOS[m]),hint:"Cada frecuencia se divide entre 10 y se multiplica por 100: 40%, 30%, 30%.",target:'[data-review-target="native-porcentajes"]'},{id:"interpretacion",title:"Interpretación de barra y sector",answer:String(`${preguntaBarraAlta}, ${preguntaSectorMayor}`),correct:preguntaBarraAlta==="bosque"&&preguntaSectorMayor==="bosque",hint:"El módulo Bosque tiene tanto la barra más alta como el sector mayor.",target:'[data-review-target="native-interpretacion"]'}];
+ const missionReviewScore=pilot.evaluation?.aciertos ?? (missionNativeItems.filter(item=>item.correct===true).length+mission.correctCount);
+ const missionReviewPrecision=Math.round(missionReviewScore/mission.total*100);
+ const resumeMission=(item?:MissionReviewItem)=>{setResultado(null);mission.beginCorrection(item);};
+if (resultado === "exito") return (
     <div className="hol-modal-overlay hol-modal-overlay--completed" role="presentation">
       <section
         className="hol-modal hol-modal--completed"
@@ -1136,7 +944,7 @@ export default function HologramaReportes() {
             </div>
           </header>
 
-          <div className="hol-modal-content">
+          <div className="hol-modal-content"><AudioRetroalimentacion/>
             <div className="hol-modal-character">
               <img
                 src={villanoTrofeoCompleto}
@@ -1171,7 +979,7 @@ export default function HologramaReportes() {
                 </div>
                 <div>
                   <span>Pasos correctos</span>
-                  <strong>4/4</strong>
+                  <strong>{missionReviewScore}/{mission.total}</strong>
                   <small>¡Perfecto!</small>
                 </div>
               </article>
@@ -1182,7 +990,7 @@ export default function HologramaReportes() {
                 </div>
                 <div>
                   <span>Tiempo</span>
-                  <strong>—</strong>
+                  <strong>{`${Math.floor(segundosTranscurridos/60).toString().padStart(2,"0")}:${(segundosTranscurridos%60).toString().padStart(2,"0")}`}</strong>
                   <small>min</small>
                 </div>
               </article>
@@ -1193,7 +1001,7 @@ export default function HologramaReportes() {
                 </div>
                 <div>
                   <span>Precisión</span>
-                  <strong>100%</strong>
+                  <strong>{missionReviewPrecision}%</strong>
                   <small>¡Impecable!</small>
                 </div>
               </article>
@@ -1204,8 +1012,8 @@ export default function HologramaReportes() {
                 </div>
                 <div>
                   <span>Recompensa</span>
-                  <strong>+50 pts</strong>
-                  <small>Puntos ganados</small>
+                  <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                  <small>XP del intento</small>
                 </div>
               </article>
 
@@ -1233,7 +1041,7 @@ export default function HologramaReportes() {
           <div className="hol-modal-progress">
             <div>
               <span>Progreso del tema</span>
-              <strong>40%</strong>
+              <strong>{missionReviewPrecision}%</strong>
             </div>
             <div className="hol-modal-progress-bar">
               <span style={{ width: "40%" }} />
@@ -1288,7 +1096,7 @@ export default function HologramaReportes() {
         <div className="hol-modal-decoration hol-modal-decoration--one" />
         <div className="hol-modal-decoration hol-modal-decoration--two" />
 
-        <div className="hol-modal-main">
+        <div className="hol-modal-main"><DetalleErroresDeMision items={pilot.reviewItems([...missionNativeItems,...mission.items])} onCorrect={resumeMission} onRestart={handleReiniciarActividad}/>
           <header className="hol-modal-header">
             <div className="hol-modal-status-icon">
               <FiRefreshCw />
@@ -1309,7 +1117,7 @@ export default function HologramaReportes() {
             </div>
           </header>
 
-          <div className="hol-modal-content">
+          <div className="hol-modal-content"><AudioRetroalimentacion/>
             <div className="hol-modal-character">
               <img src={villanoIntentar} alt="Villano retando" draggable={false} />
             </div>
@@ -1339,7 +1147,7 @@ export default function HologramaReportes() {
                 </div>
                 <div>
                   <span>Pasos correctos</span>
-                  <strong>1/4</strong>
+                  <strong>{missionReviewScore}/{mission.total}</strong>
                   <small>¡Sigue así!</small>
                 </div>
               </article>
@@ -1350,7 +1158,7 @@ export default function HologramaReportes() {
                 </div>
                 <div>
                   <span>Tiempo</span>
-                  <strong>—</strong>
+                  <strong>{`${Math.floor(segundosTranscurridos/60).toString().padStart(2,"0")}:${(segundosTranscurridos%60).toString().padStart(2,"0")}`}</strong>
                   <small>min</small>
                 </div>
               </article>
@@ -1361,7 +1169,7 @@ export default function HologramaReportes() {
                 </div>
                 <div>
                   <span>Precisión</span>
-                  <strong>25%</strong>
+                  <strong>{missionReviewPrecision}%</strong>
                   <small>Puedes mejorar</small>
                 </div>
               </article>
@@ -1372,8 +1180,8 @@ export default function HologramaReportes() {
                 </div>
                 <div>
                   <span>Recompensa</span>
-                  <strong>+10 pts</strong>
-                  <small>Puntos ganados</small>
+                  <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                  <small>XP del intento</small>
                 </div>
               </article>
 
@@ -1401,7 +1209,7 @@ export default function HologramaReportes() {
           <div className="hol-modal-progress">
             <div>
               <span>Progreso del tema</span>
-              <strong>40%</strong>
+              <strong>{missionReviewPrecision}%</strong>
             </div>
             <div className="hol-modal-progress-bar">
               <span style={{ width: "40%" }} />
@@ -1412,10 +1220,10 @@ export default function HologramaReportes() {
             <button
               type="button"
               className="hol-modal-action hol-modal-action--primary"
-              onClick={handleReiniciarActividad}
+              onClick={()=>resumeMission(missionNativeItems.find(item=>item.correct===false))}
             >
               <FiRefreshCw />
-              <span>Intentar de nuevo</span>
+              <span>Corregir errores</span>
             </button>
 
             <button
@@ -1456,7 +1264,8 @@ export default function HologramaReportes() {
   // ==========================================
 
   return (
-    <div className="hol-page">
+    <div className="hol-page mn-activity">
+      {avisoActividad && <AvisoActividad message={avisoActividad} onClose={() => setAvisoActividad(null)} />}
       {/* ================= SIDEBAR ================= */}
       <aside className="hol-sidebar">
         <img src={logo} alt="MathNova" className="hol-logo-img" />
@@ -1495,8 +1304,8 @@ export default function HologramaReportes() {
         </div>
 
         <div className="hol-xp-card">
-          <small>XP acumulados</small>
-          <strong>180 XP ⭐</strong>
+          <small>XP del último intento</small>
+          <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? "—"} XP ⭐</strong>
         </div>
 
         <div className="hol-tiempo-card">
@@ -1535,9 +1344,7 @@ export default function HologramaReportes() {
       {/* ================= CONTENIDO ================= */}
       <main className="hol-main" style={{ backgroundImage: `url(${fondoHologramaImg})` }}>
         <header className="hol-header">
-          <button className="hol-volver" type="button" onClick={() => navigate("/actividades-math-data")}>
-            <FiArrowLeft /> Volver al tema
-          </button>
+          
           <button
             type="button"
             className="hol-ayuda-btn"
@@ -1547,6 +1354,9 @@ export default function HologramaReportes() {
             <FiHelpCircle />
           </button>
         </header>
+        <CabeceraCurricular curriculum={activityCurriculum["mathdata-holograma-reportes"]} />
+        
+
 
         {/* FILA SUPERIOR */}
         <div className="hol-top-row">
@@ -1617,6 +1427,8 @@ export default function HologramaReportes() {
             </table>
           </div>
         </div>
+<EnsayoOtrosMundos activityId="mathdata-holograma-reportes"/>
+
 
         {/* FILA DE 4 PASOS */}
         <div className="hol-pasos-row">
@@ -1635,7 +1447,7 @@ export default function HologramaReportes() {
               <button
                 type="button"
                 className={`hol-tipo-opcion ${tipoGrafica === "barras" ? "hol-tipo-opcion-activa" : ""}`}
-                onClick={() => setTipoGrafica("barras")}
+                data-review-target="native-tipo" onClick={() => setTipoGrafica("barras")}
                 aria-pressed={tipoGrafica === "barras"}
                 disabled={cargandoActivar}
               >
@@ -1708,7 +1520,7 @@ export default function HologramaReportes() {
                     type="text"
                     inputMode="numeric"
                     className={`hol-barra-input hol-barra-input-${barraEstado(m)}`}
-                    value={alturaBarras[m]}
+                    data-review-target="native-barras" value={alturaBarras[m]}
                     onChange={(e) =>
                       setAlturaBarras((prev) => ({ ...prev, [m]: e.target.value }))
                     }
@@ -1771,7 +1583,7 @@ export default function HologramaReportes() {
                       type="text"
                       inputMode="numeric"
                       className={`hol-porcentaje-input hol-porcentaje-input-${porcentajeEstado(m)}`}
-                      value={porcentajes[m]}
+                      data-review-target="native-porcentajes" value={porcentajes[m]}
                       onChange={(e) =>
                         setPorcentajes((prev) => ({ ...prev, [m]: e.target.value }))
                       }
@@ -1821,7 +1633,7 @@ export default function HologramaReportes() {
                     className={`hol-opcion-radio ${
                       preguntaBarraAlta === m ? "hol-opcion-radio-activa" : ""
                     }`}
-                    onClick={() => setPreguntaBarraAlta(m)}
+                    data-review-target="native-interpretacion" onClick={() => setPreguntaBarraAlta(m)}
                     aria-pressed={preguntaBarraAlta === m}
                     disabled={cargandoActivar}
                   >
@@ -1886,16 +1698,10 @@ export default function HologramaReportes() {
             </div>
           </div>
 
-          <button
-            type="button"
-            className="hol-activar-btn"
-            onClick={activarHolograma}
-            disabled={!tipoGrafica || !preguntaBarraAlta || !preguntaSectorMayor || cargandoActivar}
-          >
-            <FiZap /> {cargandoActivar ? "Activando..." : "Activar Holograma"}
-          </button>
+          <p className="mn-finish-direction">Cuando completes los retos, usa «Terminar misión» al final de la actividad.</p>
         </div>
-      </main>
+      <PilotEvidenceStatus pilot={pilot}/>
+<RetosDeMision expansion={mission}/><CierreDeMision onFinish={()=>void activarHolograma()} busy={pilot.busy}/></main>
 
       {mostrarIntroBait && (
         <PistaBaitModal

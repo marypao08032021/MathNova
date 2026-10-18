@@ -1,0 +1,2 @@
+
+.mn-back-activity{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;min-height:44px;padding:10px 17px;margin:12px 0 0;border:1px solid hsl(215 25% 77%);border-radius:12px;background:white;color:hsl(215 46% 25%);font-weight:600;font-size:.95rem;line-height:1.4;font-family:inherit;cursor:pointer}.mn-back-activity:hover{background:hsl(140 45% 94%)}.mn-back-activity:focus-visible{outline:3px solid hsl(43 95% 50%);outline-offset:3px}

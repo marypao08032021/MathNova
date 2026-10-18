@@ -1,0 +1,16 @@
+/* Información curricular completa, desplegable y sin recortes. */
+.mn-activity .mn-curriculum.mn-curriculum-compact,.mn-curriculum.mn-curriculum-compact{padding:14px 18px;border-radius:12px;border-top-width:2px;margin:12px 0 18px;line-height:1.45;box-shadow:none}
+.mn-curriculum-compact .mn-curriculum-meta{font-size:.72rem;gap:8px;font-weight:600}
+.mn-curriculum.mn-curriculum-compact h2{font-size:1rem;margin:5px 0 8px;line-height:1.3}
+.mn-curriculum-compact .mn-curriculum-content{margin:0;font-size:.83rem;line-height:1.5}
+.mn-curriculum-content strong{font-weight:650;margin-right:6px}
+.mn-curriculum-compact .mn-curriculum-details{margin-top:10px;border-top:1px solid #64748b25;padding-top:8px}
+.mn-curriculum-details summary{cursor:pointer;font-size:.8rem;font-weight:650;color:#375c91;min-height:28px;display:list-item}
+.mn-curriculum-compact .mn-curriculum-details dl{margin-top:10px;gap:10px}
+.mn-curriculum-compact .mn-curriculum-details dd{font-size:.86rem;line-height:1.5}
+.mn-curriculum-compact .mn-curriculum-details dt{font-size:.75rem}
+.mn-curriculum-compact .mn-curriculum-objective{padding:10px 12px;border-radius:8px}
+.mn-curriculum-compact .mn-curriculum-note{padding:8px 10px;font-size:.8rem}
+.mn-curriculum-compact a{font-size:.75rem;margin-top:10px}
+.mn-finish-direction{font-size:.85rem;line-height:1.5;color:inherit}
+@media(max-width:600px){.mn-activity .mn-curriculum.mn-curriculum-compact,.mn-curriculum.mn-curriculum-compact{padding:12px 14px}.mn-curriculum-details summary{min-height:34px}}

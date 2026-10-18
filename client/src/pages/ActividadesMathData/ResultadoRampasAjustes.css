@@ -1,0 +1,71 @@
+/* Mantiene el ancho y max-height existentes del modal; compacta su interior. */
+.ram-modal-main{min-height:0;gap:10px;padding:18px 18px 16px 22px}
+.ram-modal-header{gap:10px;flex-wrap:nowrap}
+.ram-modal-status-icon{width:46px;min-width:46px;height:46px;border-width:5px;font-size:25px;box-shadow:none}
+.ram-modal-badge{padding:4px 9px;font-size:.7rem;margin-bottom:5px}
+.ram-modal-header-copy h1{font-size:clamp(1.5rem,2.6vw,2.1rem);line-height:1.1;letter-spacing:-.025em}
+.ram-modal-header-copy p{font-size:.8rem;margin-top:5px;line-height:1.35}
+.ram-modal-content{grid-template-columns:130px minmax(0,1fr);gap:12px}
+.ram-modal-character{height:118px;border-radius:16px}
+.ram-modal-character img{max-width:126px;max-height:116px}
+.ram-modal-message{min-height:110px;padding:12px 15px;border-radius:18px;box-shadow:none}
+.ram-modal-message-label{font-size:.62rem;margin-bottom:6px;padding:4px 8px}
+.ram-modal-message h2{font-size:clamp(1.1rem,1.8vw,1.35rem);margin-bottom:6px;line-height:1.15}
+.ram-modal-message p{font-size:.8rem;line-height:1.4}
+.ram-modal-audio{padding:5px 9px;gap:6px}
+.ram-modal-audio-btn{width:28px;height:28px;min-width:28px}
+.ram-modal-audio-btn--play{width:30px;height:30px;min-width:30px}
+.ram-modal-summary{padding:11px;border-radius:16px}
+.ram-modal-summary>header{margin-bottom:8px;gap:7px}
+.ram-modal-summary h2{font-size:1rem}
+.ram-modal-summary>header svg{font-size:19px}
+.ram-modal-stats{grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.ram-modal-stat{gap:6px;min-height:72px;padding:7px;border-radius:12px;align-items:flex-start}
+.ram-modal-stat-icon{width:25px;min-width:25px;height:25px;border-radius:7px}
+.ram-modal-stat-icon img{width:21px;height:21px}
+.ram-modal-stat span{font-size:.65rem;white-space:normal;text-overflow:clip;overflow:visible;line-height:1.25}
+.ram-modal-stat strong{font-size:.86rem;line-height:1.25;overflow-wrap:anywhere}
+.ram-modal-stat small{font-size:.62rem;line-height:1.25}
+.ram-modal-side{min-height:0;padding:24px 16px 16px;gap:10px}
+.ram-modal-side-message{padding:12px;border-radius:16px}
+.ram-modal-side-message span{font-size:.7rem;margin-bottom:5px}
+.ram-modal-side-message strong{font-size:.9rem;margin-bottom:5px;line-height:1.25}
+.ram-modal-side-message p{font-size:.75rem;line-height:1.4}
+.ram-modal-progress{margin-top:0;padding:10px;border-radius:12px}
+.ram-modal-progress-bar{height:8px}
+.ram-modal-actions{gap:8px;padding-top:10px}
+.ram-modal-action{min-height:44px;padding:9px 11px;border-radius:12px;font-size:.84rem;gap:8px}
+.ram-modal-action svg{width:18px;height:18px}
+.mn-activity-notice-overlay{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;padding:18px;background:rgba(17,31,53,.52);backdrop-filter:blur(5px)}
+.mn-activity-notice{position:relative;box-sizing:border-box;width:min(440px,100%);max-height:calc(100dvh - 36px);overflow:auto;padding:28px;border:1px solid #dbe5f1;border-top:4px solid #e4a13b;border-radius:22px;background:#fff;color:#213650;font:16px/1.55 system-ui,-apple-system,sans-serif;box-shadow:0 22px 65px #10244140}
+.mn-activity-notice-icon{display:grid;place-items:center;width:48px;height:48px;margin-bottom:14px;border-radius:14px;background:#fff1d9;color:#915c13;font-size:26px}
+.mn-activity-notice-label{color:#586b83;font-size:.8rem;font-weight:650}
+.mn-activity-notice h2{font-size:1.4rem;margin:6px 0 10px;line-height:1.25}
+.mn-activity-notice p{margin:0 0 22px;overflow-wrap:anywhere}
+.mn-activity-notice-close{position:absolute;right:14px;top:14px;border:0;border-radius:10px;width:34px;height:34px;display:grid;place-items:center;background:#eef3f8;color:#314b69;cursor:pointer}
+.mn-activity-notice-accept{width:100%;min-height:44px;padding:10px 16px;border:0;border-radius:12px;background:#295fc0;color:white;font:inherit;font-weight:650;cursor:pointer}
+.mn-activity-notice button:focus-visible{outline:3px solid #295fc0;outline-offset:3px}
+@media(max-width:1000px){
+ .ram-modal{grid-template-columns:1fr;overflow-y:auto}
+ .ram-modal-main{overflow:visible;padding:18px;gap:10px}
+ .ram-modal-side{overflow:visible;padding:12px 18px 18px;border-left:0;border-top:1px solid #cbdcf2}
+ .ram-modal-actions{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:0;padding-top:0}
+}
+@media(max-width:600px){
+ .ram-modal-header{align-items:center;text-align:left;flex-direction:row}
+ .ram-modal-badge{margin-inline:0}
+ .ram-modal-header-copy h1{font-size:1.45rem}
+ .ram-modal-content{grid-template-columns:85px minmax(0,1fr);gap:8px}
+ .ram-modal-character{height:95px}.ram-modal-character img{max-width:85px;max-height:95px}
+ .ram-modal-message{padding:10px;min-height:0}.ram-modal-message h2{font-size:1.05rem}
+ .ram-modal-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ram-modal-actions{grid-template-columns:1fr}
+ .ram-modal-side{padding-inline:18px}
+}
+@media(max-height:560px) and (min-width:1001px){
+ .ram-modal-main{gap:8px;padding-top:14px;padding-bottom:12px}
+ .ram-modal-content{grid-template-columns:100px minmax(0,1fr)}
+ .ram-modal-character{height:96px}.ram-modal-character img{max-height:94px}
+ .ram-modal-message{min-height:96px;padding:10px 12px}
+ .ram-modal-side{padding-top:16px;gap:8px}
+}

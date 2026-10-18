@@ -1,3 +1,12 @@
+import useMathNumbersEvidence from "../../../hooks/useMathNumbersEvidence";
+import PilotEvidenceStatus from "../../../components/PilotEvidenceStatus";
+import CierreDeMision from "../../../components/CierreDeMision";
+import useMissionExpansion from "../../../hooks/useMissionExpansion";
+import EnsayoDeMision from "../../../components/EnsayoDeMision";
+import RetosDeMision from "../../../components/RetosDeMision";
+import CabeceraCurricular from "../../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../../curriculum/activityCurriculum";
+import "../../../styles/activityExperience.css";
 import "./SimuladorCodigos.css";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -425,6 +434,7 @@ function FloatingByteHint({
 }
 
 export function SimuladorCodigos() {
+  const mission = useMissionExpansion("mathnumbers-simulador-codigos");
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
 
@@ -518,7 +528,7 @@ export function SimuladorCodigos() {
   );
 
   const energy = Math.round(
-    (progress / 3) * 100,
+    ((progress + mission.readyCount) / mission.total) * 100,
   );
 
   const basicCorrect =
@@ -779,6 +789,8 @@ export function SimuladorCodigos() {
   };
 
   const limpiarActividad = () => {
+    mission.reset();
+    pilotEvidence.resetSession();
     if (resultTimerRef.current !== null) {
       window.clearTimeout(resultTimerRef.current);
       resultTimerRef.current = null;
@@ -815,13 +827,29 @@ export function SimuladorCodigos() {
   const cerrarResultado = () => {
     setResultModalOpen(false);
 
-    if (resultModalKind !== "completed") {
-      limpiarActividad();
-      setResultModalKind("completed");
-    }
+    // Conserva las respuestas para revisar y corregir. Reiniciar las limpia.
   };
 
+  const pilotEvidence = useMathNumbersEvidence("mathnumbers-simulador-codigos", mission, () => ({
+            regla_basica:
+              basicRule,
+            regla_combinada:
+              combinedRule,
+            prediccion_n_5:
+              predictionFive.trim(),
+            prediccion_n_10:
+              predictionTen.trim(),
+            explicacion_texto:
+              explanation.trim(),
+          }));
+
   const comprobar = async () => {
+    if (!mission.ready) {
+      showToast("Completa los códigos que faltan en los nuevos retos de la misión.", true);
+      document.querySelector(`[data-mission="mathnumbers-simulador-codigos"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+
     if (guardandoProgreso) {
       return;
     }
@@ -834,13 +862,14 @@ export function SimuladorCodigos() {
       return;
     }
 
+    const pilotSnapshot = pilotEvidence.reviewForClose();
     const totalCorrect =
       Number(basicCorrect) +
       Number(combinedCorrect) +
-      Number(predictionsCorrect);
+      Number(predictionsCorrect) + mission.correctCount;
 
     const completed =
-      totalCorrect === 3;
+      totalCorrect === mission.total;
 
     const tiempoSegundos = Math.max(
       1,
@@ -861,24 +890,14 @@ export function SimuladorCodigos() {
             "mathnumbers-simulador-codigos",
           actividad_titulo:
             "El Simulador de Códigos Algebraicos",
-          respuestas: {
-            regla_basica:
-              basicRule,
-            regla_combinada:
-              combinedRule,
-            prediccion_n_5:
-              predictionFive.trim(),
-            prediccion_n_10:
-              predictionTen.trim(),
-            explicacion_texto:
-              explanation.trim(),
-          },
+          respuestas: pilotSnapshot,
           aciertos: totalCorrect,
-          total_preguntas: 3,
+          total_preguntas: mission.total,
           tiempo_segundos: tiempoSegundos,
           xp_base: 60,
           completada: completed,
         });
+      mission.recordResult({correct:totalCorrect,seconds:tiempoSegundos,xp:Number(resultado.progreso.xp_obtenido ?? 0)});
 
       const progresoGuardado =
         resultado.progreso;
@@ -968,7 +987,7 @@ export function SimuladorCodigos() {
   };
 
   return (
-    <main className="mnx-simulador-page mnx-simulador-cofre-layout">
+    <main className="mnx-simulador-page mn-activity mnx-simulador-cofre-layout">
       <button
         type="button"
         className={`mnx-simulador-hamburger ${
@@ -1127,6 +1146,8 @@ export function SimuladorCodigos() {
         </div>
 
         <section className="mnx-simulador-main">
+        <CabeceraCurricular curriculum={activityCurriculum["mathnumbers-simulador-codigos"]} />
+
           <div className="mnx-simulador-top-actions">
             <button
               type="button"
@@ -1181,7 +1202,7 @@ export function SimuladorCodigos() {
               <div className="mnx-simulador-pills">
                 <span>Patrones</span>
                 <span>12–16 min</span>
-                <span>3 retos</span>
+                <span>{mission.total} retos</span>
                 <span>+60 XP</span>
               </div>
             </div>
@@ -1285,6 +1306,7 @@ export function SimuladorCodigos() {
             </div>
           </header>
 
+          <EnsayoDeMision activityId="mathnumbers-simulador-codigos" />
           <section className="mnx-simulador-activity-grid">
             <div className="mnx-simulador-left-column">
   <article className="mnx-simulador-art">
@@ -1442,21 +1464,7 @@ export function SimuladorCodigos() {
                 </ul>
               </section>
 
-              <button
-                type="button"
-                className="mnx-simulador-check-button mnx-simulador-check-button-left"
-                onClick={comprobar}
-                disabled={guardandoProgreso}
-                aria-busy={guardandoProgreso}
-              >
-                <FiPlay />
-                {guardandoProgreso
-                  ? "Guardando progreso..."
-                  : "Probar reglas"}
-                <span>
-                  {progress}/3
-                </span>
-              </button>
+              
 
               <section className="mnx-simulador-stats mnx-simulador-stats-compact">
                 <article>
@@ -1464,7 +1472,7 @@ export function SimuladorCodigos() {
                   <div>
                     <span>Segmentos</span>
                     <strong>
-                      {progress}/3
+                      {progress + mission.readyCount}/{mission.total}
                     </strong>
                   </div>
                 </article>
@@ -1670,7 +1678,7 @@ export function SimuladorCodigos() {
               </section>
 
   <section className="mnx-simulador-challenges">
-                <article className="mnx-simulador-challenge-card">
+<article className="mnx-simulador-challenge-card">
                   <div className="mnx-simulador-challenge-head">
                     <span>1</span>
 
@@ -1711,7 +1719,7 @@ export function SimuladorCodigos() {
                           onClick={() =>
                             setBasicRule(rule)
                           }
-                          disabled={guardandoProgreso}
+                          disabled={guardandoProgreso || (mission.correctOnly && basicCorrect)}
                         >
                           <span>
                             {rule}
@@ -1772,7 +1780,7 @@ export function SimuladorCodigos() {
                           onClick={() =>
                             setCombinedRule(rule)
                           }
-                          disabled={guardandoProgreso}
+                          disabled={guardandoProgreso || (mission.correctOnly && combinedCorrect)}
                         >
                           <span>
                             {rule}
@@ -1824,14 +1832,14 @@ export function SimuladorCodigos() {
                     <input
                       type="text"
                       inputMode="numeric"
-                      pattern="[0-9-]*"
+                      pattern={"[0-9\\-]*"}
                       value={predictionFive}
                       onChange={(event) =>
                         setPredictionFive(
                           event.target.value,
                         )
                       }
-                      disabled={guardandoProgreso}
+                      disabled={guardandoProgreso || (mission.correctOnly && Number(predictionFive)===13)}
                       placeholder="?"
                     />
 
@@ -1853,14 +1861,14 @@ export function SimuladorCodigos() {
                     <input
                       type="text"
                       inputMode="numeric"
-                      pattern="[0-9-]*"
+                      pattern={"[0-9\\-]*"}
                       value={predictionTen}
                       onChange={(event) =>
                         setPredictionTen(
                           event.target.value,
                         )
                       }
-                      disabled={guardandoProgreso}
+                      disabled={guardandoProgreso || (mission.correctOnly && Number(predictionTen)===23)}
                       placeholder="?"
                     />
 
@@ -1884,7 +1892,9 @@ export function SimuladorCodigos() {
                 </article>
             
 
-                <article className="mnx-simulador-challenge-card mnx-simulador-explanation-card">
+                <PilotEvidenceStatus pilot={pilotEvidence} />
+            <RetosDeMision expansion={mission} disabled={guardandoProgreso} />
+<article className="mnx-simulador-challenge-card mnx-simulador-explanation-card">
                   <div className="mnx-simulador-challenge-head">
                     <span>4</span>
 
@@ -1934,7 +1944,7 @@ export function SimuladorCodigos() {
             </div>
           </section>
 
-        </section>
+        <CierreDeMision onFinish={comprobar} busy={guardandoProgreso}/></section>
       </section>
 
       <button
@@ -1954,6 +1964,9 @@ export function SimuladorCodigos() {
 
       {resultModalOpen && (
         <ResultModal
+          reviewItems={[...([{id:"native-0",title:"Regla básica",answer:String(basicRule??""),correct:basicCorrect,hint:"La secuencia básica aumenta de dos en dos: 2n.",target:".mnx-simulador-rule-options"},{id:"native-1",title:"Regla combinada",answer:String(combinedRule??""),correct:combinedCorrect,hint:"Añade la reserva fija de tres a la regla: 2n + 3.",target:".mnx-simulador-rule-options"},{id:"native-2",title:"Predicciones n=5 y n=10",answer:`${predictionFive}, ${predictionTen}`,correct:predictionsCorrect,hint:"Sustituye en 2n + 3: para 5 da 13 y para 10 da 23.",target:".mnx-simulador-predictions"}]),...mission.items]}
+          onCorrect={(item)=>{setResultModalOpen(false);mission.beginCorrection(item);}}
+          summary={mission.result ?? undefined}
           kind={resultModalKind}
           nextRoute={activityListRoute}
           retryRoute={activityRoute}

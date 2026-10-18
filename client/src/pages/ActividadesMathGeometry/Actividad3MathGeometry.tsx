@@ -1,3 +1,13 @@
+import useGeometryEvidence from "../../hooks/useGeometryEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import ContinuacionDeMision from "../../components/ContinuacionDeMision";
+import DetalleErroresDeMision from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import {
   type CSSProperties,
   useEffect,
@@ -630,6 +640,7 @@ function formatearTiempo(segundos: number) {
 }
 
 function Actividad3MathGeometry() {
+ const mission=useMissionExpansion("mathgeometry-actividad-3");
   const navigate = useNavigate();
   const timeoutCambioRef = useRef<number | null>(null);
   const videoNovaRef = useRef<HTMLVideoElement | null>(null);
@@ -699,20 +710,22 @@ function Actividad3MathGeometry() {
   const xpGanado = 40 + retosCompletados * 16;
   const cristales = retosCompletados * 3;
 
+  const pilot=useGeometryEvidence("mathgeometry-actividad-3",mission,()=>({
+      retos_completados: retosCompletados,
+      errores_totales: erroresTotales,
+    }));
+
   useAutoProgreso({
     completada: modalCompletado,
     codigo: "mathgeometry-actividad-3",
     mundo: "MathGeometry",
     tema: "Ángulos: agudo, recto y obtuso",
     titulo: "Detectores de Giro",
-    aciertos: RETOS.length,
-    totalPreguntas: RETOS.length,
+    aciertos: RETOS.length + mission.correctCount,
+    totalPreguntas: mission.total,
     tiempoSegundos: segundos,
     xpBase: 120,
-    respuestas: {
-      retos_completados: RETOS.length,
-      errores_totales: erroresTotales,
-    },
+    respuestas: pilot.evidence(),
   });
 
   const textoEstado = useMemo(() => {
@@ -1511,9 +1524,10 @@ function Actividad3MathGeometry() {
 
   const volverAIntentarlo = () => {
     cerrarModalSombra();
-    setSeleccion("");
     setEstadoRespuesta("pendiente");
-  };
+  
+ mission.beginCorrection();
+};
 
   const abrirModalProfe = () => {
     setModalProfeOpen(true);
@@ -1649,7 +1663,8 @@ function Actividad3MathGeometry() {
       setEstadoCierre("inicio");
       setIndiceCierreActivo(-1);
       setProgresoLineaCierre(0);
-      setModalCompletado(true);
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModalCompletado(true); else mission.review();
       setAutoPlayCierre(true);
       return;
     }
@@ -1671,6 +1686,8 @@ function Actividad3MathGeometry() {
 
       return;
     }
+
+    pilot.recordNative(retoActual,seleccion);
 
     if (seleccion === reto.respuesta) {
       setEstadoRespuesta("correcto");
@@ -1755,6 +1772,8 @@ function Actividad3MathGeometry() {
   };
 
   const reiniciarActividad = () => {
+    mission.reset();
+    pilot.resetSession();
     if (timeoutCambioRef.current) {
       window.clearTimeout(timeoutCambioRef.current);
     }
@@ -1798,7 +1817,7 @@ function Actividad3MathGeometry() {
 
   return (
     <main
-      className={`act3geo-page ${pausado ? "act3geo-activity-paused" : ""}`}
+      className={`act3geo-page mn-activity ${pausado ? "act3geo-activity-paused" : ""}`}
     >
       <button
         type="button"
@@ -1879,44 +1898,16 @@ function Actividad3MathGeometry() {
           </button>
         </nav>
 
-        <div className="act3geo-sidebar-progress-area">
-          <article className="act3geo-side-week-card">
-            <div className="act3geo-side-week-head">
-              <strong>Progreso semanal</strong>
-              <span>Nivel 3</span>
-            </div>
-
-            <div className="act3geo-side-progress">
-              <span>★</span>
-              <div>
-                <b style={{ width: "60%" }} />
-              </div>
-              <strong>60%</strong>
-            </div>
-          </article>
-        </div>
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathgeometry-actividad-3"].objective}</strong></div>
       </aside>
 
       <section className="act3geo-content">
         <img src={heroBanner} alt="Banner Actividad 3" className="act3geo-bg" />
 
         <section className="act3geo-main">
-          <div className="act3geo-breadcrumb">
-            <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
-              Mundos
-            </button>
-            <span>›</span>
-            <button
-              type="button"
-              onClick={() => irARuta("/actividades/geometria")}
-            >
-              Actividades MathGeometry
-            </button>
-            <span>›</span>
-            <button type="button" className="act3geo-breadcrumb-current">
-              Act 3
-            </button>
-          </div>
+        <CabeceraCurricular curriculum={activityCurriculum["mathgeometry-actividad-3"]} />
+        
+
 
           <header className="act3geo-topbar">
             <div className="act3geo-title-area">
@@ -2038,7 +2029,8 @@ function Actividad3MathGeometry() {
             <audio ref={audioNovaRef} src={audioBienvenida} preload="auto" />
           </section>
 
-          <section className="act3geo-layout">
+          <EnsayoOtrosMundos activityId="mathgeometry-actividad-3"/>
+<section className="act3geo-layout">
             <article
               className={`act3geo-board ${
                 estadoRespuesta === "cambiando" ? "act3geo-board-changing" : ""
@@ -2285,7 +2277,11 @@ function Actividad3MathGeometry() {
               </section>
             </aside>
           </section>
-        </section>
+ 
+
+        <PilotEvidenceStatus pilot={pilot}/>
+        <ContinuacionDeMision expansion={mission} onComplete={()=>{setModalCompletado(true);}} onRestart={reiniciarActividad}/>
+</section>
 
         {modalPistasOpen && (
           <div
@@ -2499,6 +2495,8 @@ function Actividad3MathGeometry() {
               </div>
 
               <div className="act3geo-sombra-content">
+ <DetalleErroresDeMision items={[...(RETOS.map((r,i)=>({id:`native-${i}`,title:i===retoActual?"Reto geométrico " + (retoActual+1):`Reto geométrico ${i+1}`,answer:i===retoActual?String(seleccion??""):i<retosCompletados?"Validado en la misión":"",correct:i<retosCompletados?true:i===retoActual?Boolean(seleccion===reto.respuesta):null,hint:r.consejo,target:".act3geo-layout"})).filter((_,i)=>i<=retoActual)),...mission.items]} onCorrect={(item)=>{cerrarModalSombra(); setEstadoRespuesta("pendiente"); mission.beginCorrection(item);}} onRestart={reiniciarActividad}/>
+
                 <span className="act3geo-sombra-badge">
                   <FiVolume2 /> Mensaje de Sombra
                 </span>
@@ -2788,7 +2786,7 @@ function Actividad3MathGeometry() {
                 <span className="act3geo-complete-spark act3geo-complete-spark-two" />
               </div>
 
-              <div className="act3geo-complete-content">
+              <div className="act3geo-complete-content"><AudioRetroalimentacion/>
                 <span className="act3geo-complete-badge">
                   <GiTrophyCup /> Actividad completada
                 </span>

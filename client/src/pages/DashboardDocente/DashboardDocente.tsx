@@ -1,3 +1,4 @@
+import {startTesterSession} from "../../utils/testerSession";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { clearAuthSession } from "../../utils/authSession";
@@ -129,6 +130,8 @@ function claseSituacion(situacion: string) {
 }
 
 function DashboardDocente() {
+  const [testerBusy,setTesterBusy]=useState(false);
+  const [testerError,setTesterError]=useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
   const [gruposOpen, setGruposOpen] = useState(() => {
@@ -372,7 +375,7 @@ function DashboardDocente() {
               type="button"
             >
               <FiEdit />
-              <span>Actividades</span>
+              <span>Control de actividades</span>
             </button>
 
             <button
@@ -408,6 +411,7 @@ function DashboardDocente() {
       </aside>
 
       <section className="docente-content">
+        <section className="mn-live-entry"><h2>Tu aula en línea</h2><p>Consulta quién tiene MathNova abierto y el avance comunicado desde sus actividades.</p><button type="button" onClick={()=>navigate("/monitor-aula")}>Abrir monitor del aula</button></section>
         <section className="docente-hero">
           <div className="docente-hero-text">
             <h1>Bienvenido al Dashboard Docente</h1>
@@ -416,7 +420,10 @@ function DashboardDocente() {
               Gestiona tus grupos y da seguimiento al progreso de tus alumnos.
             </p>
 
+            {testerError&&<p role="alert">{testerError}</p>}
             <div className="docente-hero-actions">
+              <button type="button" className="docente-primary-btn" onClick={() => irARuta("/actividades-docente", "actividades")}>Control de actividades · Habilitar o bloquear</button>
+              <button type="button" className="docente-secondary-btn" disabled={testerBusy} onClick={()=>{setTesterBusy(true);setTesterError("");startTesterSession().then(()=>navigate("/dashboard",{state:{mostrarIntroduccion:false}})).catch(e=>setTesterError(e.message)).finally(()=>setTesterBusy(false))}}>{testerBusy?"Abriendo prueba…":"Entrar en modo estudiante · Tester"}</button>
               <button
                 className="docente-primary-btn"
                 onClick={() => irARuta("/crear-grupo-docente", "crear-grupo")}
@@ -460,7 +467,7 @@ function DashboardDocente() {
 
           <article className="docente-stat-card yellow-card">
             <div>
-              <h3>Alumnos registrados</h3>
+              <h3>Alumnos de tus grupos</h3>
               <strong>
                 {cargandoDashboard
                   ? "..."

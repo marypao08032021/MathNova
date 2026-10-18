@@ -9964,3 +9964,6 @@ body:has(.act8geo-modal-overlay) {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Consigna legible: complementa la imagen y aclara las respuestas válidas. */
+.act8geo-game-card > h2 { display:block !important; margin:14px 0; font-size:16px; line-height:1.5; color:#102452; }

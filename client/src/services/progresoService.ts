@@ -1,3 +1,4 @@
+import {closePilot} from "../utils/pilotEvidence";
 const API_URL = "/api/progreso";
 
 export type GuardarProgresoPayload = {
@@ -88,6 +89,7 @@ export type MundoResumen = {
 };
 
 export type RespuestaGuardarProgreso = {
+  intento_piloto?: {id:string;tiempo_segundos:number;xp_obtenido:number;estrellas_obtenidas:number;evaluacion:{aciertos:number;total:number;precision:number;completada:boolean;items:{id:string;pregunta:string;respuesta:unknown;correcta:boolean|null;detalle?:{pregunta:string;respuesta:unknown;correcta:boolean|null}[]}[]}};
   ok: boolean;
   mensaje: string;
   progreso: ProgresoActividad;
@@ -209,7 +211,7 @@ const leerUsuarioGuardado = (): UsuarioSesion | null => {
 
       try {
         const datos = JSON.parse(valor) as UsuarioSesion;
-        const usuario = datos.usuario ?? datos.user ?? datos;
+        const usuario = (datos.usuario && typeof datos.usuario === "object") ? datos.usuario : (datos.user && typeof datos.user === "object") ? datos.user : datos;
 
         if (obtenerIdDesdeUsuario(usuario)) {
           return usuario;
@@ -335,6 +337,7 @@ export const guardarProgresoActividad = async (
 ): Promise<RespuestaGuardarProgreso> => {
   validarPayload(payload);
 
+  return closePilot(payload, async payload => {
   const response = await fetch(
     `${API_URL}/actividad`,
     {
@@ -369,9 +372,8 @@ export const guardarProgresoActividad = async (
     },
   );
 
-  return manejarRespuesta<RespuestaGuardarProgreso>(
-    response,
-  );
+  return manejarRespuesta<RespuestaGuardarProgreso>(response);
+  });
 };
 
 /*

@@ -1395,6 +1395,7 @@ function PerfilAlumno() {
       </aside>
 
       <section className="perfil-content">
+          <button type="button" className="mn-edit-profile" onClick={()=>navigate("/cuenta")}>Editar mis datos y avatar</button>
         <header className="perfil-title">
           <h1>Perfil del alumno</h1>
 

@@ -10127,3 +10127,6 @@ body:has(.act7geo-modal-overlay) {
     font-size: 20px;
   }
 }
+
+/* Consigna legible: complementa la imagen y aclara las respuestas válidas. */
+.act7geo-game-card > h2 { display:block !important; margin:14px 0; font-size:16px; line-height:1.5; color:#102452; }

@@ -1,3 +1,5 @@
+import AulaNotice from "../../components/AulaNotice";
+import useAulaAccess from "../../hooks/useAulaAccess";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./ActividadesMathGeometry.css";
@@ -92,6 +94,8 @@ const extraerProgresos = (
 };
 
 function ActividadesMathGeometry() {
+  const aula=useAulaAccess();
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [progresos, setProgresos] = useState<ProgresoGeometry[]>([]);
   const [cargandoProgreso, setCargandoProgreso] = useState(true);
@@ -319,18 +323,7 @@ function ActividadesMathGeometry() {
     ...actividadesTema2ConEstado,
   ];
 
-  const estaDesbloqueada = (codigoActividad: string): boolean => {
-    const indiceGlobal = todasLasActividades.findIndex(
-      (act) => act.codigo === codigoActividad,
-    );
-
-    // La actividad 1 siempre está accesible
-    if (indiceGlobal <= 0) return true;
-
-    // Se desbloquea si la anterior está Completada
-    const actividadAnterior = todasLasActividades[indiceGlobal - 1];
-    return actividadAnterior.estado === "Completada";
-  };
+  const estaDesbloqueada = (codigoActividad:string):boolean => aula.allowed(codigoActividad);
 
   const totalCompletadas = todasLasActividades.filter(
     (actividad) =>
@@ -432,6 +425,7 @@ function ActividadesMathGeometry() {
         <img src={heroBanner} alt="Banner Geometry" className="geomx-bg" />
 
         <section className="geomx-main">
+          <AulaNotice aula={aula} mundo="mathgeometry"/>
           <div className="geomx-breadcrumb">
             <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
               Mundos

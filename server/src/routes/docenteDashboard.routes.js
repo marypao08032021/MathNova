@@ -1,3 +1,4 @@
+const {scopeStudent,scopeGroup}=require('../services/docenteScope');
 const express = require("express");
 const pool = require("../db");
 
@@ -7,13 +8,13 @@ router.get("/", async (req, res) => {
   try {
     const gruposResultado = await pool.query(`
       SELECT COUNT(*)::int AS total
-      FROM public.grupos
+      FROM public.grupos g WHERE ${scopeGroup("g")}
     `);
 
     const alumnosRegistradosResultado = await pool.query(`
       SELECT COUNT(*)::int AS total
-      FROM public.registro
-      WHERE LOWER(COALESCE(rol, '')) = 'estudiante'
+      FROM public.registro r
+      WHERE ${scopeStudent('r')} AND LOWER(COALESCE(r.rol, '')) IN ('estudiante','alumno')
         AND estado = true
     `);
 
@@ -96,7 +97,7 @@ router.get("/", async (req, res) => {
     }
 
     if (alumnosRegistrados === 0) {
-      avisos.push("Aún no hay alumnos registrados con rol estudiante.");
+      avisos.push("Aún no tienes alumnos asignados a tus grupos.");
     }
 
     if (alumnosSinGrupo > 0) {

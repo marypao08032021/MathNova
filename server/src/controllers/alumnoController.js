@@ -242,11 +242,19 @@ const obtenerPerfilAlumno = async (req, res) => {
       }));
     }
 
+    const evolucion = await require('../services/seguimientoService').perfil(usuario);
     return res.json({
       ok: true,
       perfil: {
         id: usuario.id_usuario,
         id_usuario: usuario.id_usuario,
+        grado: usuario.grado,
+        escuela: usuario.escuela,
+        fecha_registro: usuario.fecha_registro,
+        miembro_desde: usuario.fecha_registro,
+        avatar_url: evolucion.perfil.avatar_url,
+        nivel: evolucion.perfil.nivel,
+        titulo: `Evolución ${evolucion.perfil.etapa}`,
         nombreCompleto: usuario.nombre_completo,
         nombre_completo: usuario.nombre_completo,
         correo: usuario.correo,

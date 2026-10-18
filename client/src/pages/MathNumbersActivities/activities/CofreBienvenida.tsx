@@ -1,3 +1,12 @@
+import useMathNumbersEvidence from "../../../hooks/useMathNumbersEvidence";
+import PilotEvidenceStatus from "../../../components/PilotEvidenceStatus";
+import CierreDeMision from "../../../components/CierreDeMision";
+import useMissionExpansion from "../../../hooks/useMissionExpansion";
+import EnsayoDeMision from "../../../components/EnsayoDeMision";
+import RetosDeMision from "../../../components/RetosDeMision";
+import CabeceraCurricular from "../../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../../curriculum/activityCurriculum";
+import "../../../styles/activityExperience.css";
 import "./CofreBienvenida.css";
 import audioIntroSuma from "../../../assets/mathnumbers/01-cofre-bienvenida/intro_suma.mp3";
 import audioPistaByte from "../../../assets/mathnumbers/01-cofre-bienvenida/pista_byte.mp3";
@@ -835,6 +844,7 @@ function Fraction({ top, bottom }: { top: string; bottom: string }) {
 }
 
 export function CofreBienvenida() {
+  const mission = useMissionExpansion("mathnumbers-cofre-bienvenida");
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
 
@@ -886,7 +896,7 @@ export function CofreBienvenida() {
     chestPhase === "fall" ? chestFall : chestVib;
 
   const progress = Object.keys(answers).length;
-  const energy = progress * 50;
+  const energy = Math.round((progress + mission.readyCount) / mission.total * 100);
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "auto";
@@ -1031,10 +1041,7 @@ export function CofreBienvenida() {
       return;
     }
 
-    setAnswers((current) => ({
-      ...current,
-      [question]: value,
-    }));
+    setAnswers((current) => mission.correctOnly && current[question] === correctAnswers[question] ? current : ({...current, [question]: value}));
 
     setChecked(false);
     setSolved(false);
@@ -1063,6 +1070,8 @@ export function CofreBienvenida() {
   };
 
   const limpiarActividad = () => {
+    mission.reset();
+    pilotEvidence.resetSession();
     if (resultTimerRef.current !== null) {
       window.clearTimeout(resultTimerRef.current);
       resultTimerRef.current = null;
@@ -1096,13 +1105,18 @@ export function CofreBienvenida() {
   const cerrarResultado = () => {
     setResultModalOpen(false);
 
-    if (resultModalKind !== "completed") {
-      limpiarActividad();
-      setResultModalKind("completed");
-    }
+    // Conserva las respuestas para revisar y corregir. Reiniciar las limpia.
   };
 
+  const pilotEvidence = useMathNumbersEvidence("mathnumbers-cofre-bienvenida", mission, () => ({ ...answers, }));
+
   const comprobar = async () => {
+    if (!mission.ready) {
+      showToast("Completa los códigos que faltan en los nuevos retos de la misión.", true);
+      document.querySelector(`[data-mission="mathnumbers-cofre-bienvenida"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+
     if (guardandoProgreso) {
       return;
     }
@@ -1115,14 +1129,15 @@ export function CofreBienvenida() {
       return;
     }
 
+    const pilotSnapshot = pilotEvidence.reviewForClose();
     const total = (
       Object.keys(correctAnswers) as QuestionKey[]
     ).filter(
       (question) =>
         answers[question] === correctAnswers[question],
-    ).length;
+    ).length + mission.correctCount;
 
-    const esCorrecto = total === 2;
+    const esCorrecto = total === mission.total;
 
     const tiempoSegundos = Math.max(
       1,
@@ -1154,14 +1169,14 @@ export function CofreBienvenida() {
             "mathnumbers-cofre-bienvenida",
           actividad_titulo:
             "El Cofre de Bienvenida",
-          respuestas:
-            answers as Record<string, unknown>,
+          respuestas: pilotSnapshot,
           aciertos: total,
-          total_preguntas: 2,
+          total_preguntas: mission.total,
           tiempo_segundos: tiempoSegundos,
           xp_base: 40,
           completada: esCorrecto,
         });
+      mission.recordResult({correct:total,seconds:tiempoSegundos,xp:Number(resultado.progreso.xp_obtenido ?? 0)});
 
       const estrellasGuardadas = Number(
         resultado.progreso.estrellas_obtenidas ?? 0,
@@ -1238,7 +1253,7 @@ export function CofreBienvenida() {
 
   return (
     <main
-      className={`mnx-cofre-page mnx-cofre-radar-layout ${
+      className={`mnx-cofre-page mn-activity mnx-cofre-radar-layout ${
         solved ? "mnx-cofre-solved" : ""
       }`}
     >
@@ -1359,6 +1374,8 @@ export function CofreBienvenida() {
         </div>
 
         <section className="mnx-cofre-main">
+        <CabeceraCurricular curriculum={activityCurriculum["mathnumbers-cofre-bienvenida"]} />
+
           <div className="mnx-cofre-top-actions">
             <button
               type="button"
@@ -1402,14 +1419,14 @@ export function CofreBienvenida() {
                 Descubre cómo una fracción y un decimal pueden
                 representar exactamente la misma cantidad.
                 <br />
-                Completa las dos preguntas para llenar la energía
+                Completa los retos de la misión para llenar la energía
                 del cofre.
               </p>
 
               <div className="mnx-cofre-pills">
                 <span>Introducción</span>
                 <span>5–8 min</span>
-                <span>2 preguntas</span>
+                <span>{mission.total} retos</span>
                 <span>+40 XP</span>
               </div>
             </div>
@@ -1500,6 +1517,7 @@ export function CofreBienvenida() {
             </div>
           </header>
 
+          <EnsayoDeMision activityId="mathnumbers-cofre-bienvenida" />
           <section className="mnx-cofre-activity-grid">
             <article className="mnx-cofre-art">
               <div className="mnx-cofre-chest-visual">
@@ -1569,9 +1587,8 @@ export function CofreBienvenida() {
                 </article>
               </div>
             </section>
-
-            <section className="mnx-cofre-questions">
-              <article className="mnx-cofre-question-card">
+<section className="mnx-cofre-questions">
+              <article data-review-target="native-q1" className="mnx-cofre-question-card">
                 <div className="mnx-cofre-question-title">
                   <span>1</span>
                   <h2>
@@ -1584,8 +1601,9 @@ export function CofreBienvenida() {
                   <button
                     type="button"
                     className={answerClass("q1", "a")}
+ aria-pressed={answers.q1==="a"}
                     onClick={() => selectAnswer("q1", "a")}
-                    disabled={guardandoProgreso}
+                    disabled={guardandoProgreso || (mission.correctOnly && answers.q1===correctAnswers.q1)}
                   >
                     <span>A</span>
                     <strong>0.2</strong>
@@ -1595,8 +1613,9 @@ export function CofreBienvenida() {
                   <button
                     type="button"
                     className={answerClass("q1", "b")}
+ aria-pressed={answers.q1==="b"}
                     onClick={() => selectAnswer("q1", "b")}
-                    disabled={guardandoProgreso}
+                    disabled={guardandoProgreso || (mission.correctOnly && answers.q1===correctAnswers.q1)}
                   >
                     <span>B</span>
                     <strong>1.5</strong>
@@ -1606,8 +1625,9 @@ export function CofreBienvenida() {
                   <button
                     type="button"
                     className={answerClass("q1", "c")}
+ aria-pressed={answers.q1==="c"}
                     onClick={() => selectAnswer("q1", "c")}
-                    disabled={guardandoProgreso}
+                    disabled={guardandoProgreso || (mission.correctOnly && answers.q1===correctAnswers.q1)}
                   >
                     <span>C</span>
                     <strong>0.5</strong>
@@ -1617,8 +1637,9 @@ export function CofreBienvenida() {
                   <button
                     type="button"
                     className={answerClass("q1", "d")}
+ aria-pressed={answers.q1==="d"}
                     onClick={() => selectAnswer("q1", "d")}
-                    disabled={guardandoProgreso}
+                    disabled={guardandoProgreso || (mission.correctOnly && answers.q1===correctAnswers.q1)}
                   >
                     <span>D</span>
                     <strong>2.0</strong>
@@ -1627,7 +1648,7 @@ export function CofreBienvenida() {
                 </div>
               </article>
 
-              <article className="mnx-cofre-question-card">
+              <article data-review-target="native-q2" className="mnx-cofre-question-card">
                 <div className="mnx-cofre-question-title">
                   <span>2</span>
                   <h2>
@@ -1640,8 +1661,9 @@ export function CofreBienvenida() {
                   <button
                     type="button"
                     className={answerClass("q2", "a")}
+ aria-pressed={answers.q2==="a"}
                     onClick={() => selectAnswer("q2", "a")}
-                    disabled={guardandoProgreso}
+                    disabled={guardandoProgreso || (mission.correctOnly && answers.q2===correctAnswers.q2)}
                   >
                     <span>A</span>
                     <Fraction top="1" bottom="2" />
@@ -1651,8 +1673,9 @@ export function CofreBienvenida() {
                   <button
                     type="button"
                     className={answerClass("q2", "b")}
+ aria-pressed={answers.q2==="b"}
                     onClick={() => selectAnswer("q2", "b")}
-                    disabled={guardandoProgreso}
+                    disabled={guardandoProgreso || (mission.correctOnly && answers.q2===correctAnswers.q2)}
                   >
                     <span>B</span>
                     <Fraction top="4" bottom="1" />
@@ -1662,8 +1685,9 @@ export function CofreBienvenida() {
                   <button
                     type="button"
                     className={answerClass("q2", "c")}
+ aria-pressed={answers.q2==="c"}
                     onClick={() => selectAnswer("q2", "c")}
-                    disabled={guardandoProgreso}
+                    disabled={guardandoProgreso || (mission.correctOnly && answers.q2===correctAnswers.q2)}
                   >
                     <span>C</span>
                     <Fraction top="2" bottom="5" />
@@ -1673,8 +1697,9 @@ export function CofreBienvenida() {
                   <button
                     type="button"
                     className={answerClass("q2", "d")}
+ aria-pressed={answers.q2==="d"}
                     onClick={() => selectAnswer("q2", "d")}
-                    disabled={guardandoProgreso}
+                    disabled={guardandoProgreso || (mission.correctOnly && answers.q2===correctAnswers.q2)}
                   >
                     <span>D</span>
                     <Fraction top="1" bottom="4" />
@@ -1682,9 +1707,12 @@ export function CofreBienvenida() {
                   </button>
                 </div>
               </article>
+            <PilotEvidenceStatus pilot={pilotEvidence} />
+            <RetosDeMision expansion={mission} disabled={guardandoProgreso} />
             </section>
 
-            <section className="mnx-cofre-reminder-card">
+            
+<section className="mnx-cofre-reminder-card">
               <CharacterMedia media={currentGuideCharacter} />
               <div>
                 <span className="mnx-cofre-help-label">
@@ -1709,19 +1737,7 @@ export function CofreBienvenida() {
                 </div>
               </article>
 
-              <button
-                type="button"
-                className="mnx-cofre-check-button"
-                onClick={comprobar}
-                disabled={guardandoProgreso}
-                aria-busy={guardandoProgreso}
-              >
-                <FiCheck />
-                {guardandoProgreso
-                  ? "Guardando progreso..."
-                  : "Comprobar respuestas"}
-                <span>{progress}/2 listas</span>
-              </button>
+              
             </aside>
           </section>
 
@@ -1730,7 +1746,7 @@ export function CofreBienvenida() {
               <FiFlag />
               <div>
                 <span>Respuestas</span>
-                <strong>{progress}/2</strong>
+                <strong>{progress + mission.readyCount}/{mission.total}</strong>
               </div>
             </article>
 
@@ -1758,7 +1774,7 @@ export function CofreBienvenida() {
               </div>
             </article>
           </section>
-        </section>
+        <CierreDeMision onFinish={comprobar} busy={guardandoProgreso}/></section>
       </section>
 
       <FloatingByteHint />
@@ -1774,6 +1790,9 @@ export function CofreBienvenida() {
 
       {resultModalOpen && (
         <ResultModal
+          reviewItems={[...(Object.entries(correctAnswers).map(([id,key],i)=>({id:`native-${id}`,title:`Reto ${i+1}: equivalencia del cofre`,answer:answers[id as QuestionKey]||"",correct:answers[id as QuestionKey]===key,hint:i===0?"Una mitad equivale a 0.5. Compara las opciones con 1/2.":"Un cuarto equivale a 0.25. Divide 1 entre 4.",target:`[data-review-target="native-${id}"]`}))),...mission.items]}
+          onCorrect={(item)=>{setResultModalOpen(false);mission.beginCorrection(item);}}
+          summary={mission.result ?? undefined}
           kind={resultModalKind}
           nextRoute={radarRoute}
           retryRoute={cofreRoute}

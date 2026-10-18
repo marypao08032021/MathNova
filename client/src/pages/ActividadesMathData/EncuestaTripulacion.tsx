@@ -1,10 +1,19 @@
+import useMathDataEvidence from "../../hooks/useMathDataEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import CierreDeMision from "../../components/CierreDeMision";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import RetosDeMision from "../../components/RetosDeMision";
+import DetalleErroresDeMision, {type MissionReviewItem} from "../../components/DetalleErroresDeMision";
+import AvisoActividad from "../../components/AvisoActividad";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getSessionUser } from "../../utils/authSession";
-import {
-  guardarProgresoUsuarioActual,
-} from "../../services/progresoService";
 
 import logo from "../../assets/logo_MathNova.png";
 import "./EncuestaTripulacion.css";
@@ -522,18 +531,16 @@ function ResultAudioPlayer({ src }: { src: string }) {
     audio.currentTime = 0;
     audio.volume = 1;
 
+    let resultPlaybackActive = true;
     const playPromise = audio.play();
-
     if (playPromise !== undefined) {
       playPromise.catch((error) => {
-        console.warn(
-          "El audio del resultado no pudo iniciarse automáticamente:",
-          error,
-        );
+        if (!resultPlaybackActive || error?.name === "AbortError") return;
+        console.warn("El audio del resultado no pudo iniciarse automáticamente:", error);
       });
     }
-
     return () => {
+      resultPlaybackActive = false;
       audio.pause();
       audio.currentTime = 0;
     };
@@ -618,6 +625,8 @@ function ResultAudioPlayer({ src }: { src: string }) {
 ========================================================= */
 
 export default function EncuestaTripulacion() {
+ const mission=useMissionExpansion("mathdata-encuesta-tripulacion");
+  const [avisoActividad, setAvisoActividad] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const ID_ESTUDIANTE =
@@ -725,8 +734,9 @@ export default function EncuestaTripulacion() {
   // ==========================================
 
   const verificarTabla = async () => {
+    pilot.recordAll();
     if (!ID_ESTUDIANTE) {
-      alert(
+      setAvisoActividad(
         "No se encontró tu sesión. Inicia sesión nuevamente.",
       );
       return;
@@ -784,144 +794,17 @@ export default function EncuestaTripulacion() {
   // ENVIAR AL CENTRO DE MANDO (módulo ganador)
   // ==========================================
 
+  const pilot=useMathDataEvidence("mathdata-encuesta-tripulacion",mission,()=>({frecuencia_bosque:VOTOS.bosque,frecuencia_desierto:frecDesierto,frecuencia_cueva:frecCueva,modulo_seleccionado:moduloSeleccionado}));
+  useEffect(()=>{const attempt=pilot.receipt?.intento_piloto;if(!attempt)return;
+    setResultado(attempt.evaluacion.completada?"exito":"fallo");
+  },[pilot.receipt]);
+
   const enviarCentroDeMando = async () => {
-    if (
-      !moduloSeleccionado ||
-      cargandoEnvio
-    ) {
-      return;
-    }
-
-    if (!ID_ESTUDIANTE) {
-      alert(
-        "No se encontró tu sesión. Inicia sesión nuevamente.",
-      );
-      return;
-    }
-
+    if(pilot.busy)return;
     setCargandoEnvio(true);
-
-    try {
-      const response = await fetch(
-        `${API_URL}/tripulacion/validar-modulo`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            id_estudiante:
-              ID_ESTUDIANTE,
-            modulo:
-              moduloSeleccionado,
-          }),
-        },
-      );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.message ||
-            `HTTP ${response.status}`,
-        );
-      }
-
-      if (data.success && data.data) {
-        const correcto =
-          Boolean(
-            data.data.correcto,
-          );
-
-        const tiempoSegundos =
-          Math.max(
-            1,
-            Math.floor(
-              (
-                Date.now() -
-                inicioActividadRef.current
-              ) / 1000,
-            ),
-          );
-
-        /*
-         * Se conserva el backend original de Tripulación
-         * y además se registra la actividad en el sistema
-         * unificado de progreso, estrellas y estadísticas.
-         */
-        try {
-          const resultadoProgreso =
-            await guardarProgresoUsuarioActual({
-              mundo: "MathData",
-              tema:
-                "Tablas de frecuencias",
-              actividad_codigo:
-                "mathdata-encuesta-tripulacion",
-              actividad_titulo:
-                "La Encuesta de la Tripulación",
-              respuestas: {
-                frecuencia_bosque:
-                  VOTOS.bosque,
-                frecuencia_desierto:
-                  Number(
-                    frecDesierto,
-                  ),
-                frecuencia_cueva:
-                  Number(
-                    frecCueva,
-                  ),
-                modulo_seleccionado:
-                  moduloSeleccionado,
-              },
-              aciertos:
-                correcto ? 3 : 2,
-              total_preguntas: 3,
-              tiempo_segundos:
-                tiempoSegundos,
-              xp_base: 50,
-              completada:
-                correcto,
-            });
-
-          console.log(
-            "Progreso de Encuesta de Tripulación guardado:",
-            resultadoProgreso.progreso,
-          );
-        } catch (
-          progresoError
-        ) {
-          console.error(
-            "La actividad se validó, pero no se pudo registrar en el progreso unificado:",
-            progresoError,
-          );
-        }
-
-        inicioActividadRef.current =
-          Date.now();
-
-        setResultado(
-          correcto
-            ? "exito"
-            : "fallo",
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Error al enviar al Centro de Mando:",
-        error,
-      );
-
-      const mensaje =
-        error instanceof Error
-          ? error.message
-          : "Error al conectar con el servidor.";
-
-      alert(`❌ ${mensaje}`);
-    } finally {
-      setCargandoEnvio(false);
-    }
+    try {await pilot.finish(Math.max(1,Math.floor((Date.now()-inicioActividadRef.current)/1000)),50);}
+    catch(error){setAvisoActividad(error instanceof Error?error.message:"No se pudo guardar; conserva esta pestaña.");}
+    finally{setCargandoEnvio(false);}
   };
 
   // ==========================================
@@ -929,6 +812,8 @@ export default function EncuestaTripulacion() {
   // ==========================================
 
   const handleReiniciarActividad = async () => {
+ mission.reset();
+ pilot.resetSession();
     try {
       await fetch(`${API_URL}/tripulacion/reiniciar`, {
         method: "POST",
@@ -956,7 +841,12 @@ export default function EncuestaTripulacion() {
   // PANTALLA: ACTIVIDAD COMPLETADA
   // ==========================================
 
-  if (resultado === "exito") return (
+  
+ const missionNativeItems:MissionReviewItem[]=[{id:"desierto",title:"Frecuencia del Desierto",answer:String(frecDesierto),correct:Number(frecDesierto)===VOTOS.desierto,hint:"Cuenta los votos del Desierto; hay 3.",target:'[data-review-target="native-desierto"]'},{id:"cueva",title:"Frecuencia de la Cueva",answer:String(frecCueva),correct:Number(frecCueva)===VOTOS.cueva,hint:"Cuenta los votos de la Cueva; hay 3.",target:'[data-review-target="native-cueva"]'},{id:"modulo",title:"Módulo más votado",answer:String(moduloSeleccionado),correct:moduloSeleccionado==="bosque",hint:"Bosque tiene 4 votos; Desierto y Cueva tienen 3.",target:'[data-review-target="native-modulo"]'}];
+ const missionReviewScore=pilot.evaluation?.aciertos ?? (missionNativeItems.filter(item=>item.correct===true).length+mission.correctCount);
+ const missionReviewPrecision=Math.round(missionReviewScore/mission.total*100);
+ const resumeMission=(item?:MissionReviewItem)=>{setResultado(null);mission.beginCorrection(item);};
+if (resultado === "exito") return (
     <div className="enc-modal-overlay enc-modal-overlay--completed" role="presentation">
       <section
         className="enc-modal enc-modal--completed"
@@ -988,7 +878,7 @@ export default function EncuestaTripulacion() {
             </div>
           </header>
 
-          <div className="enc-modal-content">
+          <div className="enc-modal-content"><AudioRetroalimentacion/>
             <div className="enc-modal-character">
               <img
                 src={villanoTrofeoCompleto}
@@ -1022,7 +912,7 @@ export default function EncuestaTripulacion() {
                 </div>
                 <div>
                   <span>Respuestas correctas</span>
-                  <strong>3/3</strong>
+                  <strong>{missionReviewScore}/{mission.total}</strong>
                   <small>¡Perfecto!</small>
                 </div>
               </article>
@@ -1033,7 +923,7 @@ export default function EncuestaTripulacion() {
                 </div>
                 <div>
                   <span>Tiempo</span>
-                  <strong>—</strong>
+                  <strong>{`${Math.floor(segundosTranscurridos/60).toString().padStart(2,"0")}:${(segundosTranscurridos%60).toString().padStart(2,"0")}`}</strong>
                   <small>min</small>
                 </div>
               </article>
@@ -1044,7 +934,7 @@ export default function EncuestaTripulacion() {
                 </div>
                 <div>
                   <span>Precisión</span>
-                  <strong>100%</strong>
+                  <strong>{missionReviewPrecision}%</strong>
                   <small>¡Impecable!</small>
                 </div>
               </article>
@@ -1055,8 +945,8 @@ export default function EncuestaTripulacion() {
                 </div>
                 <div>
                   <span>Recompensa</span>
-                  <strong>+50 pts</strong>
-                  <small>Puntos ganados</small>
+                  <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                  <small>XP del intento</small>
                 </div>
               </article>
 
@@ -1084,7 +974,7 @@ export default function EncuestaTripulacion() {
           <div className="enc-modal-progress">
             <div>
               <span>Progreso del tema</span>
-              <strong>30%</strong>
+              <strong>{missionReviewPrecision}%</strong>
             </div>
             <div className="enc-modal-progress-bar">
               <span style={{ width: "30%" }} />
@@ -1139,7 +1029,7 @@ export default function EncuestaTripulacion() {
         <div className="enc-modal-decoration enc-modal-decoration--one" />
         <div className="enc-modal-decoration enc-modal-decoration--two" />
 
-        <div className="enc-modal-main">
+        <div className="enc-modal-main"><DetalleErroresDeMision items={pilot.reviewItems([...missionNativeItems,...mission.items])} onCorrect={resumeMission} onRestart={handleReiniciarActividad}/>
           <header className="enc-modal-header">
             <div className="enc-modal-status-icon">
               <FiRefreshCw />
@@ -1160,7 +1050,7 @@ export default function EncuestaTripulacion() {
             </div>
           </header>
 
-          <div className="enc-modal-content">
+          <div className="enc-modal-content"><AudioRetroalimentacion/>
             <div className="enc-modal-character">
               <img src={villanoIntentar} alt="Villano retando" draggable={false} />
             </div>
@@ -1191,7 +1081,7 @@ export default function EncuestaTripulacion() {
                 </div>
                 <div>
                   <span>Respuestas correctas</span>
-                  <strong>0/3</strong>
+                  <strong>{missionReviewScore}/{mission.total}</strong>
                   <small>¡Sigue así!</small>
                 </div>
               </article>
@@ -1202,7 +1092,7 @@ export default function EncuestaTripulacion() {
                 </div>
                 <div>
                   <span>Tiempo</span>
-                  <strong>—</strong>
+                  <strong>{`${Math.floor(segundosTranscurridos/60).toString().padStart(2,"0")}:${(segundosTranscurridos%60).toString().padStart(2,"0")}`}</strong>
                   <small>min</small>
                 </div>
               </article>
@@ -1213,7 +1103,7 @@ export default function EncuestaTripulacion() {
                 </div>
                 <div>
                   <span>Precisión</span>
-                  <strong>0%</strong>
+                  <strong>{missionReviewPrecision}%</strong>
                   <small>Puedes mejorar</small>
                 </div>
               </article>
@@ -1224,8 +1114,8 @@ export default function EncuestaTripulacion() {
                 </div>
                 <div>
                   <span>Recompensa</span>
-                  <strong>+10 pts</strong>
-                  <small>Puntos ganados</small>
+                  <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                  <small>XP del intento</small>
                 </div>
               </article>
 
@@ -1253,7 +1143,7 @@ export default function EncuestaTripulacion() {
           <div className="enc-modal-progress">
             <div>
               <span>Progreso del tema</span>
-              <strong>30%</strong>
+              <strong>{missionReviewPrecision}%</strong>
             </div>
             <div className="enc-modal-progress-bar">
               <span style={{ width: "30%" }} />
@@ -1264,10 +1154,10 @@ export default function EncuestaTripulacion() {
             <button
               type="button"
               className="enc-modal-action enc-modal-action--primary"
-              onClick={handleReiniciarActividad}
+              onClick={()=>resumeMission(missionNativeItems.find(item=>item.correct===false))}
             >
               <FiRefreshCw />
-              <span>Intentar de nuevo</span>
+              <span>Corregir errores</span>
             </button>
 
             <button
@@ -1308,7 +1198,8 @@ export default function EncuestaTripulacion() {
   // ==========================================
 
   return (
-    <div className="enc-page">
+    <div className="enc-page mn-activity">
+      {avisoActividad && <AvisoActividad message={avisoActividad} onClose={() => setAvisoActividad(null)} />}
       {/* ================= SIDEBAR ================= */}
       <aside className="enc-sidebar">
         <img src={logo} alt="MathNova" className="enc-logo-img" />
@@ -1391,13 +1282,7 @@ export default function EncuestaTripulacion() {
       <main className="enc-main">
         <header className="enc-header">
           <div className="enc-header-izquierda">
-            <button
-              className="enc-volver"
-              type="button"
-              onClick={() => navigate("/actividades-math-data")}
-            >
-              <FiArrowLeft /> Volver al tema
-            </button>
+            
           </div>
           <button
             type="button"
@@ -1408,6 +1293,9 @@ export default function EncuestaTripulacion() {
             <FiHelpCircle />
           </button>
         </header>
+        <CabeceraCurricular curriculum={activityCurriculum["mathdata-encuesta-tripulacion"]} />
+        
+
 
         {/* FILA SUPERIOR */}
         <div className="enc-top-row">
@@ -1475,6 +1363,8 @@ export default function EncuestaTripulacion() {
             className="enc-villano-box"
           />
         </div>
+<EnsayoOtrosMundos activityId="mathdata-encuesta-tripulacion"/>
+
 
         {/* ENCUESTA Y TABLA */}
         <div className="enc-medio-row">
@@ -1573,7 +1463,7 @@ export default function EncuestaTripulacion() {
                       type="text"
                       inputMode="numeric"
                       className={`enc-frecuencia-input enc-frecuencia-input-${estadoDesierto}`}
-                      value={frecDesierto}
+                      data-review-target="native-desierto" value={frecDesierto}
                       onChange={(e) => setFrecDesierto(e.target.value)}
                       aria-label="Frecuencia absoluta del módulo Desierto"
                       disabled={cargandoTabla || estadoDesierto === "correcto"}
@@ -1614,7 +1504,7 @@ export default function EncuestaTripulacion() {
                       type="text"
                       inputMode="numeric"
                       className={`enc-frecuencia-input enc-frecuencia-input-${estadoCueva}`}
-                      value={frecCueva}
+                      data-review-target="native-cueva" value={frecCueva}
                       onChange={(e) => setFrecCueva(e.target.value)}
                       aria-label="Frecuencia absoluta del módulo Cueva de Cristal"
                       disabled={cargandoTabla || estadoCueva === "correcto"}
@@ -1710,7 +1600,7 @@ export default function EncuestaTripulacion() {
                   className={`enc-resumen-opcion enc-modulo-${m} ${
                     moduloSeleccionado === m ? "enc-resumen-opcion-activa" : ""
                   }`}
-                  onClick={() => setModuloSeleccionado(m)}
+                  data-review-target="native-modulo" onClick={() => setModuloSeleccionado(m)}
                   aria-pressed={moduloSeleccionado === m}
                   disabled={!tablaCompleta}
                 >
@@ -1735,17 +1625,11 @@ export default function EncuestaTripulacion() {
               </div>
             )}
 
-            <button
-              type="button"
-              className="enc-enviar-btn"
-              onClick={enviarCentroDeMando}
-              disabled={!moduloSeleccionado || cargandoEnvio}
-            >
-              <FiSend /> {cargandoEnvio ? "Enviando..." : "Enviar al Centro de Mando"}
-            </button>
+            <p className="mn-finish-direction">Cuando completes los retos, usa «Terminar misión» al final de la actividad.</p>
           </div>
         </div>
-      </main>
+      <PilotEvidenceStatus pilot={pilot}/>
+<RetosDeMision expansion={mission}/><CierreDeMision onFinish={()=>void enviarCentroDeMando()} busy={pilot.busy}/></main>
 
       {mostrarPistaBait && (
         <PistaBaitModal

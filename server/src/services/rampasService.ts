@@ -1,3 +1,4 @@
+import { evaluateRampas } from './rampasValidation';
 import { ActividadRampas } from '../models';
 
 export interface VerificarRequest {
@@ -15,6 +16,7 @@ export interface VerificarRequest {
 
 export interface VerificarResponse {
   correcto: boolean;
+  aciertos: number;
   mensaje: string;
   intentos: number;
   error_signo_descenso?: boolean;
@@ -63,20 +65,9 @@ class RampasService {
       });
     }
 
-    // Detectamos el error de signo específico: escribió "2" en vez de "-2"
-    const bitDescensoLimpio = respuestas.bitacora_pendiente_descenso.trim();
-    const errorSigno = bitDescensoLimpio === this.VALOR_DESCENSO;
-
-    const esCorrecto =
-      respuestas.pendiente_ascenso === this.PENDIENTE_ASCENSO_CORRECTA &&
-      respuestas.pendiente_descenso === this.PENDIENTE_DESCENSO_CORRECTA &&
-      respuestas.ecuacion_ascenso.trim() === this.VALOR_ASCENSO &&
-      respuestas.ecuacion_descenso.trim() === this.VALOR_DESCENSO &&
-      respuestas.bitacora_pendiente_ascenso.trim() === this.VALOR_ASCENSO &&
-      respuestas.bitacora_ecuacion_ascenso.trim() === this.VALOR_ASCENSO &&
-      (bitDescensoLimpio === `-${this.VALOR_DESCENSO}` ||
-        bitDescensoLimpio === `−${this.VALOR_DESCENSO}`) &&
-      respuestas.bitacora_ecuacion_descenso.trim() === this.VALOR_DESCENSO;
+    const evaluacion = evaluateRampas(respuestas);
+    const esCorrecto = evaluacion.correcto;
+    const errorSigno = evaluacion.error_signo_descenso;
 
     const intentoActual = progreso.intentos_verificacion + 1;
 
@@ -118,6 +109,7 @@ class RampasService {
     if (esCorrecto) {
       return {
         correcto: true,
+        aciertos: evaluacion.aciertos,
         mensaje: '¡Misión cumplida! Calibraste las dos rampas correctamente.',
         intentos: intentoActual,
         completada: true,
@@ -127,6 +119,7 @@ class RampasService {
 
     return {
       correcto: false,
+      aciertos: evaluacion.aciertos,
       mensaje: errorSigno
         ? 'El valor numérico es correcto, pero falta el signo negativo. La nave baja, la pendiente es negativa.'
         : 'Algo no cuadra todavía. Revisa la tabla de cada rampa y vuelve a intentarlo.',

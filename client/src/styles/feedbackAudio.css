@@ -1,0 +1,7 @@
+.mn-feedback-audio{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;position:relative;z-index:2}.mn-feedback-audio button{font:inherit;font-size:.8rem;min-height:36px;padding:7px 10px;border:1px solid #b8cce3;border-radius:9px;background:#f3f8ff;color:#173a64;cursor:pointer}.mn-feedback-audio button:focus-visible{outline:3px solid #d79325;outline-offset:2px}.mn-feedback-audio small{flex-basis:100%;font-size:.8rem}
+@media(max-width:760px){
+ body [class*="geo-"][class*="modal-overlay"]:has([role="dialog"][class*="geo-complete-modal"]){align-items:flex-start!important;padding:12px!important;overflow:hidden!important}
+ body [role="dialog"][class*="geo-complete-modal"]{max-height:calc(100dvh - 24px)!important;min-height:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;margin:0 auto!important}
+ body [role="dialog"][class*="geo-complete-modal"] [class*="complete-controls"]{display:flex!important;flex-wrap:wrap!important;gap:6px!important}
+ body [role="dialog"][class*="geo-complete-modal"] [class*="complete-controls"]>button{width:auto!important;flex:1!important;min-width:80px!important;min-height:38px!important;padding:8px!important;font-size:12px!important}
+}

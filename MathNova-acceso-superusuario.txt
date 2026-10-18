@@ -1,0 +1,7 @@
+MathNova — acceso local
+Usuario: mathnova.superadmin
+Correo: superadmin@mathnova.local
+Contraseña: Ax46VAudpFdc-HkpaZ4di6kV
+Clave para crear/editar docentes: 6U1uen9WK9tQQ11B
+Panel: http://localhost:5173/admin/superusuario
+Reinicia el backend después de configurar.

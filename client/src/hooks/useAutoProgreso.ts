@@ -1,3 +1,5 @@
+import {guardarProgresoActividad} from "../services/progresoService";
+import {pilotCodes} from "../utils/pilotEvidence";
 import { useEffect, useRef, useState } from "react";
 import {
   getSessionUser,
@@ -244,7 +246,7 @@ export function useAutoProgreso({
       tema: datos.tema.trim() || null,
       actividad_codigo: datos.codigo.trim(),
       actividad_titulo: datos.titulo.trim(),
-      respuestas: datos.respuestas ?? {},
+      respuestas: (datos.respuestas ?? {}) as Record<string,unknown> | unknown[],
       aciertos: Math.max(
         0,
         Number(datos.aciertos) || 0,
@@ -276,6 +278,7 @@ export function useAutoProgreso({
       );
 
       try {
+        if(pilotCodes.has(payload.actividad_codigo)) { await guardarProgresoActividad(payload);guardadoRef.current=true;setGuardado(true);return; }
         const response = await fetch(
           PROGRESO_ACTIVIDAD_URL,
           {

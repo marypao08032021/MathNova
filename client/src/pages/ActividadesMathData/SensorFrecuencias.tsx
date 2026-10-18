@@ -1,10 +1,19 @@
+import useMathDataEvidence from "../../hooks/useMathDataEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import CierreDeMision from "../../components/CierreDeMision";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import RetosDeMision from "../../components/RetosDeMision";
+import DetalleErroresDeMision, {type MissionReviewItem} from "../../components/DetalleErroresDeMision";
+import AvisoActividad from "../../components/AvisoActividad";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { getSessionUser } from "../../utils/authSession";
-import {
-  guardarProgresoUsuarioActual,
-} from "../../services/progresoService";
 
 import logo from "../../assets/logo_MathNova.png";
 import "./SensorFrecuencias.css";
@@ -445,18 +454,16 @@ function ResultAudioPlayer({ src }: { src?: string }) {
     audio.currentTime = 0;
     audio.volume = 1;
 
+    let resultPlaybackActive = true;
     const playPromise = audio.play();
-
     if (playPromise !== undefined) {
       playPromise.catch((error) => {
-        console.warn(
-          "El audio del resultado no pudo iniciarse automáticamente:",
-          error,
-        );
+        if (!resultPlaybackActive || error?.name === "AbortError") return;
+        console.warn("El audio del resultado no pudo iniciarse automáticamente:", error);
       });
     }
-
     return () => {
+      resultPlaybackActive = false;
       audio.pause();
       audio.currentTime = 0;
     };
@@ -541,6 +548,8 @@ function ResultAudioPlayer({ src }: { src?: string }) {
 ========================================================= */
 
 export default function SensorFrecuencias() {
+ const mission=useMissionExpansion("mathdata-sensor-frecuencias");
+  const [avisoActividad, setAvisoActividad] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const ID_ESTUDIANTE =
@@ -731,11 +740,7 @@ export default function SensorFrecuencias() {
               ) || 0,
             );
 
-            setResultado(
-              correcto
-                ? "exito"
-                : "fallo",
-            );
+            setResultado(null);
           }
         }
       } catch (error) {
@@ -756,6 +761,7 @@ export default function SensorFrecuencias() {
   // ==========================================
 
   const verificarAbsoluta = async () => {
+    pilot.recordAll();
     if (
       cargandoAbsoluta ||
       cargandoZona
@@ -764,7 +770,7 @@ export default function SensorFrecuencias() {
     }
 
     if (!ID_ESTUDIANTE) {
-      alert(
+      setAvisoActividad(
         "No se encontró tu sesión. Inicia sesión nuevamente.",
       );
       return;
@@ -824,6 +830,7 @@ export default function SensorFrecuencias() {
   // ==========================================
 
   const verificarRelativa = async () => {
+    pilot.recordAll();
     if (
       cargandoRelativa ||
       cargandoZona
@@ -832,7 +839,7 @@ export default function SensorFrecuencias() {
     }
 
     if (!ID_ESTUDIANTE) {
-      alert(
+      setAvisoActividad(
         "No se encontró tu sesión. Inicia sesión nuevamente.",
       );
       return;
@@ -891,257 +898,18 @@ export default function SensorFrecuencias() {
   // CALCULAR ZONA DE ORIGEN (paso final)
   // ==========================================
 
+  const pilot=useMathDataEvidence("mathdata-sensor-frecuencias",mission,()=>({frecuencias_absolutas:frecAbsoluta,frecuencias_relativas:frecRelativa,senal_mayor_frecuencia:preguntaMayorFrecuencia,zona_origen:preguntaZona}));
+  useEffect(()=>{const attempt=pilot.receipt?.intento_piloto;if(!attempt)return;
+    setResultado(attempt.evaluacion.completada?"exito":"fallo");
+    setAciertosResultado(attempt.evaluacion.aciertos);setTiempoResultado(attempt.tiempo_segundos);
+  },[pilot.receipt]);
+
   const calcularZonaOrigen = async () => {
-    if (
-      !preguntaMayorFrecuencia ||
-      !preguntaZona ||
-      cargandoZona ||
-      guardandoProgresoRef.current
-    ) {
-      return;
-    }
-
-    if (!ID_ESTUDIANTE) {
-      alert(
-        "No se encontró tu sesión. Inicia sesión nuevamente.",
-      );
-      return;
-    }
-
+    if(pilot.busy)return;
     setCargandoZona(true);
-    guardandoProgresoRef.current =
-      true;
-
-    const tiempoSegundos = Math.max(
-      1,
-      Math.floor(
-        (
-          Date.now() -
-          inicioActividadRef.current
-        ) / 1000,
-      ),
-    );
-
-    try {
-      const response = await fetch(
-        `${API_URL}/sensor/calcular-zona`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify({
-            id_estudiante:
-              ID_ESTUDIANTE,
-            pregunta_senal_frecuente:
-              preguntaMayorFrecuencia,
-            pregunta_zona_origen:
-              preguntaZona,
-          }),
-        },
-      );
-
-      const data =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.mensaje ||
-            data?.message ||
-            `HTTP ${response.status}`,
-        );
-      }
-
-      if (data.success && data.data) {
-        const senales =
-          [
-            "alfa",
-            "beta",
-            "gamma",
-            "delta",
-          ] as Senal[];
-
-        const absolutasCorrectas =
-          senales.every(
-            (senal) =>
-              absolutaEstados[
-                senal
-              ] === "correcto" ||
-              Number(
-                frecAbsoluta[
-                  senal
-                ],
-              ) ===
-                FRECUENCIAS[
-                  senal
-                ],
-          );
-
-        const relativasCorrectas =
-          senales.every(
-            (senal) =>
-              relativaEstados[
-                senal
-              ] === "correcto" ||
-              frecRelativa[
-                senal
-              ].trim() ===
-                PORCENTAJES_CORRECTOS[
-                  senal
-                ],
-          );
-
-        const senalCorrecta =
-          preguntaMayorFrecuencia ===
-          "beta";
-
-        const zonaCorrecta =
-          preguntaZona === "sur";
-
-        /*
-         * El resultado final se calcula con los valores que aparecen en
-         * pantalla. Antes se utilizaba únicamente data.data.correcto y, si
-         * el backend devolvía false aunque las respuestas fueran correctas,
-         * se mostraba erróneamente "Vuelve a intentarlo".
-         */
-        const correcto =
-          absolutasCorrectas &&
-          relativasCorrectas &&
-          senalCorrecta &&
-          zonaCorrecta;
-
-        const aciertosCalculados =
-          Number(
-            absolutasCorrectas,
-          ) +
-          Number(
-            relativasCorrectas,
-          ) +
-          Number(
-            senalCorrecta,
-          ) +
-          Number(
-            zonaCorrecta,
-          );
-
-        try {
-          const progresoUnificado =
-            await guardarProgresoUsuarioActual({
-              mundo: "MathData",
-              tema:
-                "Frecuencia absoluta y relativa",
-              actividad_codigo:
-                "mathdata-sensor-frecuencias",
-              actividad_titulo:
-                "Sensor de Frecuencias",
-              respuestas: {
-                frecuencias_absolutas:
-                  Object.fromEntries(
-                    senales.map(
-                      (senal) => [
-                        senal,
-                        Number(
-                          frecAbsoluta[
-                            senal
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                frecuencias_relativas:
-                  Object.fromEntries(
-                    senales.map(
-                      (senal) => [
-                        senal,
-                        Number(
-                          frecRelativa[
-                            senal
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                senal_mayor_frecuencia:
-                  preguntaMayorFrecuencia,
-                zona_origen:
-                  preguntaZona,
-              },
-              aciertos:
-                aciertosCalculados,
-              total_preguntas: 4,
-              tiempo_segundos:
-                tiempoSegundos,
-              xp_base: 50,
-              completada:
-                correcto,
-            });
-
-          console.log(
-            "Progreso del Sensor de Frecuencias guardado:",
-            progresoUnificado.progreso,
-          );
-        } catch (
-          progresoError
-        ) {
-          console.error(
-            "La actividad se validó, pero no se pudo registrar en el progreso unificado:",
-            progresoError,
-          );
-        }
-
-        // Avisamos al panel (ActividadesMathData) que esta actividad (índice 4)
-        // ya se completó, para que desbloquee la 6 aunque se navegue directo
-        // con el botón "Siguiente actividad" y nunca se pase por el panel.
-        if (correcto) {
-          try {
-            const idParaDesbloqueo = ID_ESTUDIANTE || "invitado";
-            localStorage.setItem(
-              `mathdata_desbloqueo_${idParaDesbloqueo}_4`,
-              "1",
-            );
-          } catch (error) {
-            console.error(
-              "No se pudo guardar el desbloqueo de la actividad 6:",
-              error,
-            );
-          }
-        }
-
-        setAciertosResultado(
-          aciertosCalculados,
-        );
-
-        setTiempoResultado(
-          tiempoSegundos,
-        );
-
-        inicioActividadRef.current =
-          Date.now();
-
-        setResultado(
-          correcto
-            ? "exito"
-            : "fallo",
-        );
-      }
-    } catch (error) {
-      console.error(
-        "Error al calcular la zona de origen:",
-        error,
-      );
-
-      const mensaje =
-        error instanceof Error
-          ? error.message
-          : "Error al conectar con el servidor.";
-
-      alert(`❌ ${mensaje}`);
-    } finally {
-      setCargandoZona(false);
-      guardandoProgresoRef.current =
-        false;
-    }
+    try {await pilot.finish(Math.max(1,Math.floor((Date.now()-inicioActividadRef.current)/1000)),50);}
+    catch(error){setAvisoActividad(error instanceof Error?error.message:"No se pudo guardar; conserva esta pestaña.");}
+    finally{setCargandoZona(false);}
   };
 
   // ==========================================
@@ -1149,6 +917,8 @@ export default function SensorFrecuencias() {
   // ==========================================
 
   const handleReiniciarActividad = async () => {
+ mission.reset();
+ pilot.resetSession();
     if (ID_ESTUDIANTE) {
       try {
         await fetch(`${API_URL}/sensor/reiniciar`, {
@@ -1183,7 +953,7 @@ export default function SensorFrecuencias() {
   const precisionResultado =
     Math.round(
       (
-        aciertosResultado / 4
+        aciertosResultado / mission.total
       ) * 100,
     );
 
@@ -1205,7 +975,10 @@ export default function SensorFrecuencias() {
   // VENTANA EMERGENTE: ACTIVIDAD COMPLETADA
   // ==========================================
 
-  if (resultado === "exito") return (
+  
+ const missionNativeItems:MissionReviewItem[]=[{id:"absolutas",title:"Frecuencias absolutas",answer:String(JSON.stringify(frecAbsoluta)),correct:(Object.keys(FRECUENCIAS) as Senal[]).every(m=>Number(frecAbsoluta[m])===FRECUENCIAS[m]),hint:"Vuelve a contar las marcas de cada señal.",target:'[data-review-target="native-absolutas"]'},{id:"relativas",title:"Frecuencias relativas",answer:String(JSON.stringify(frecRelativa)),correct:(Object.keys(FRECUENCIAS) as Senal[]).every(m=>relativaEstados[m]==="correcto" || frecRelativa[m].trim()===PORCENTAJES_CORRECTOS[m]),hint:"La tabla pide porcentajes: divide entre 20 y multiplica por 100. Alfa 25%, Beta 40%, Gamma 20%, Delta 15%. Escribe solo el número.",target:'[data-review-target="native-relativas"]'},{id:"senal",title:"Señal más frecuente",answer:String(preguntaMayorFrecuencia),correct:preguntaMayorFrecuencia==="beta",hint:"Compara las cuatro frecuencias: beta es la mayor.",target:'[data-review-target="native-senal"]'},{id:"zona",title:"Zona recomendada",answer:String(preguntaZona),correct:preguntaZona==="sur",hint:"Relaciona la señal más frecuente con su zona: sur.",target:'[data-review-target="native-zona"]'}];
+ const resumeMission=(item?:MissionReviewItem)=>{setResultado(null);mission.beginCorrection(item);};
+if (resultado === "exito") return (
     <div
       className="sen-modal-overlay sen-modal-overlay--completed"
       role="presentation"
@@ -1263,7 +1036,7 @@ export default function SensorFrecuencias() {
             </div>
           </header>
 
-          <div className="sen-modal-content">
+          <div className="sen-modal-content"><AudioRetroalimentacion/>
             <div className="sen-modal-character">
               <img
                 src={villanoTrofeoCompleto}
@@ -1304,7 +1077,7 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
                 </div>
                 <div>
                   <span>Pasos correctos</span>
-                  <strong>{aciertosResultado}/4</strong>
+                  <strong>{aciertosResultado}/{mission.total}</strong>
                   <small>¡Perfecto!</small>
                 </div>
               </article>
@@ -1337,8 +1110,8 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
                 </div>
                 <div>
                   <span>Recompensa</span>
-                  <strong>+50 pts</strong>
-                  <small>Puntos ganados</small>
+                  <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                  <small>XP del intento</small>
                 </div>
               </article>
 
@@ -1454,7 +1227,7 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
         <div className="sen-modal-decoration sen-modal-decoration--one" />
         <div className="sen-modal-decoration sen-modal-decoration--two" />
 
-        <div className="sen-modal-main">
+        <div className="sen-modal-main"><DetalleErroresDeMision items={pilot.reviewItems([...missionNativeItems,...mission.items])} onCorrect={resumeMission} onRestart={handleReiniciarActividad}/>
           <header className="sen-modal-header">
             <div className="sen-modal-status-icon">
               <FiRefreshCw />
@@ -1475,7 +1248,7 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
             </div>
           </header>
 
-          <div className="sen-modal-content">
+          <div className="sen-modal-content"><AudioRetroalimentacion/>
             <div className="sen-modal-character">
               <img
                 src={villanoIntentar}
@@ -1518,7 +1291,7 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
                 </div>
                 <div>
                   <span>Pasos correctos</span>
-                  <strong>{aciertosResultado}/4</strong>
+                  <strong>{aciertosResultado}/{mission.total}</strong>
                   <small>¡Sigue así!</small>
                 </div>
               </article>
@@ -1551,8 +1324,8 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
                 </div>
                 <div>
                   <span>Recompensa</span>
-                  <strong>+10 pts</strong>
-                  <small>Puntos ganados</small>
+                  <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? 0} XP</strong>
+                  <small>XP del intento</small>
                 </div>
               </article>
 
@@ -1598,10 +1371,10 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
             <button
               type="button"
               className="sen-modal-action sen-modal-action--primary"
-              onClick={handleReiniciarActividad}
+              onClick={()=>resumeMission(missionNativeItems.find(item=>item.correct===false))}
             >
               <FiRefreshCw />
-              <span>Intentar de nuevo</span>
+              <span>Corregir errores</span>
             </button>
 
             <button
@@ -1645,7 +1418,8 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
   // ==========================================
 
   return (
-    <div className="sen-page">
+    <div className="sen-page mn-activity">
+      {avisoActividad && <AvisoActividad message={avisoActividad} onClose={() => setAvisoActividad(null)} />}
       {/* ================= SIDEBAR ================= */}
       <aside className="sen-sidebar">
         <img src={logo} alt="MathNova" className="sen-logo-img" />
@@ -1684,21 +1458,22 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
         </div>
 
         <div className="sen-xp-card">
-          <small>XP acumulados</small>
-          <strong>180 XP ⭐</strong>
+          <small>XP del último intento</small>
+          <strong>{pilot.receipt?.intento_piloto?.xp_obtenido ?? "—"} XP ⭐</strong>
         </div>
       </aside>
 
       {/* ================= CONTENIDO ================= */}
       <main className="sen-main" style={{ backgroundImage: `url(${fondoSensorImg})` }}>
         <header className="sen-header">
-          <button className="sen-volver" type="button" onClick={() => navigate("/actividades-math-data")}>
-            <FiArrowLeft /> Volver al tema
-          </button>
+          
           <button type="button" className="sen-ayuda-btn" aria-label="Ayuda">
             <FiHelpCircle />
           </button>
         </header>
+        <CabeceraCurricular curriculum={activityCurriculum["mathdata-sensor-frecuencias"]} />
+        
+
 
         {/* FILA SUPERIOR */}
         <div className="sen-top-row">
@@ -1737,6 +1512,8 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
             </div>
           </div>
         </div>
+<EnsayoOtrosMundos activityId="mathdata-sensor-frecuencias"/>
+
 
         {/* FILA DE 4 PASOS */}
         <div className="sen-pasos-row">
@@ -1814,7 +1591,7 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
                           type="text"
                           inputMode="numeric"
                           className={`sen-input sen-input-${absolutaEstado(s)}`}
-                          value={frecAbsoluta[s]}
+                          data-review-target="native-absolutas" value={frecAbsoluta[s]}
                           onChange={(e) =>
                             setFrecAbsoluta((prev) => ({ ...prev, [s]: e.target.value }))
                           }
@@ -1886,7 +1663,7 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
                           type="text"
                           inputMode="decimal"
                           className={`sen-input sen-input-${relativaEstado(s)}`}
-                          value={frecRelativa[s]}
+                          data-review-target="native-relativas" value={frecRelativa[s]}
                           onChange={(e) =>
                             setFrecRelativa((prev) => ({ ...prev, [s]: e.target.value }))
                           }
@@ -1945,7 +1722,7 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
                     className={`sen-opcion-radio ${
                       preguntaMayorFrecuencia === s ? "sen-opcion-radio-activa" : ""
                     }`}
-                    onClick={() => setPreguntaMayorFrecuencia(s)}
+                    data-review-target="native-senal" onClick={() => setPreguntaMayorFrecuencia(s)}
                     aria-pressed={preguntaMayorFrecuencia === s}
                     disabled={cargandoZona}
                   >
@@ -1969,7 +1746,7 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
                     className={`sen-opcion-radio ${
                       preguntaZona === z ? "sen-opcion-radio-activa" : ""
                     }`}
-                    onClick={() => setPreguntaZona(z)}
+                    data-review-target="native-zona" onClick={() => setPreguntaZona(z)}
                     aria-pressed={preguntaZona === z}
                     disabled={cargandoZona}
                   >
@@ -2019,24 +1796,10 @@ Lo lograste a gente con la frecuencia absoluta y relativa pudimos calcular dónd
             </div>
           </div>
 
-          <button
-            type="button"
-            className="sen-calcular-btn"
-            onClick={calcularZonaOrigen}
-            disabled={
-              !preguntaMayorFrecuencia ||
-              !preguntaZona ||
-              cargandoZona
-            }
-            aria-busy={cargandoZona}
-          >
-            <FiTarget />
-            {cargandoZona
-              ? "Guardando progreso..."
-              : "Calcular Zona de Origen"}
-          </button>
+          <p className="mn-finish-direction">Cuando completes los retos, usa «Terminar misión» al final de la actividad.</p>
         </div>
-      </main>
+      <PilotEvidenceStatus pilot={pilot}/>
+<RetosDeMision expansion={mission}/><CierreDeMision onFinish={()=>void calcularZonaOrigen()} busy={pilot.busy}/></main>
 
       {mostrarIntroBait && (
         <PistaBaitModal

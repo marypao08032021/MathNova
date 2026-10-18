@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   useLocation,
   useNavigate,
@@ -11,9 +11,10 @@ import {
 } from "../../utils/authSession";
 
 import "./Login.css";
+import "./RegistrationModal.css";
 
 import zorritoLogin from "../../assets/zorrito_login.png";
-import zorritoCrearCuenta from "../../assets/zorrito_crear-cuenta.png";
+
 import logo from "../../assets/logo_MathNova.png";
 
 import { MdOutlineEmail } from "react-icons/md";
@@ -86,6 +87,22 @@ function Login() {
     null,
   );
 
+  useEffect(() => {
+    if (!isRegister) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = document.querySelector<HTMLElement>(".mn-register-dialog");
+    const key = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {setIsRegister(false);return;}
+      if (event.key !== "Tab" || !dialog) return;
+      const fields = [...dialog.querySelectorAll<HTMLElement>("button:not(:disabled),input:not(:disabled),a[href],select,textarea")];
+      const first=fields[0],last=fields.at(-1);
+      if(event.shiftKey && document.activeElement===first){event.preventDefault();last?.focus();}
+      else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first?.focus();}
+    };
+    document.addEventListener("keydown",key);
+    return () => {document.removeEventListener("keydown",key);previous?.focus();};
+  }, [isRegister]);
+
   const limpiarSesionAnterior = () => {
     clearAuthSession();
   };
@@ -124,20 +141,27 @@ function Login() {
         "docente",
         "profesor",
         "maestro",
+        "docente_estudiante",
+        "docente_alumno",
+        "docente-estudiante",
+        "docente-alumno",
+        "maestro_estudiante",
+        "maestro-estudiante",
+        "mixto",
       ].includes(rolTexto)
     ) {
       return "docente";
     }
 
-    if (usuario?.role_id === 1) {
+    if ([1, 4].includes(Number(usuario?.role_id))) {
       return "docente";
     }
 
-    if (usuario?.role_id === 2) {
+    if (Number(usuario?.role_id) === 2) {
       return "estudiante";
     }
 
-    if (usuario?.role_id === 3) {
+    if (Number(usuario?.role_id) === 3) {
       return "admin";
     }
 
@@ -220,6 +244,10 @@ function Login() {
 
     const rutaInicial =
       obtenerRutaPorRol(rol);
+    if (rol === "docente") {
+      navigate("/dashboard-docente", { replace: true });
+      return;
+    }
 
     const rutaAnterior =
       state?.from;
@@ -325,12 +353,7 @@ function Login() {
         data.usuario,
       );
 
-      console.log(
-        "Token guardado:",
-        localStorage.getItem(
-          "token",
-        ),
-      );
+
 
       redirigirPorRol(
         data.usuario,
@@ -376,11 +399,7 @@ function Login() {
     <main className="login-page">
       <div className="login-scene">
         <div
-          className={`login-card-flip ${
-            isRegister
-              ? "is-flipped"
-              : ""
-          }`}
+          className="login-card-flip"
         >
           <div className="login-card card-face card-front">
             <section className="login-left">
@@ -541,43 +560,11 @@ function Login() {
             </section>
           </div>
 
-          <div className="login-card card-face card-back">
-            <section className="login-left">
-              <div className="poster">
-                <img
-                  src={logo}
-                  alt="MathNova"
-                  className="login-logo"
-                />
 
-                <p className="poster-text">
-                  Explorando el universo
-                  de las matemáticas
-                </p>
-
-                <img
-                  src={
-                    zorritoCrearCuenta
-                  }
-                  alt="Zorrito crear cuenta"
-                  className="fox-img"
-                />
-              </div>
-            </section>
-
-            <section className="login-right">
-              <RegisterForm
-                onBack={() =>
-                  setIsRegister(
-                    false,
-                  )
-                }
-              />
-            </section>
-          </div>
         </div>
       </div>
 
+      {isRegister && <div className="mn-register-overlay"><section className="mn-register-dialog" role="dialog" aria-modal="true" aria-labelledby="mn-register-title"><button type="button" className="mn-register-close" aria-label="Cerrar registro" onClick={()=>setIsRegister(false)}>×</button><RegisterForm onBack={()=>setIsRegister(false)}/></section></div>}
       {mensajeError && (
         <div
           className="login-error-overlay"

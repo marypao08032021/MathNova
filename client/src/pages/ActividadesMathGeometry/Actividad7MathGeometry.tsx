@@ -1,3 +1,13 @@
+import useGeometryEvidence from "../../hooks/useGeometryEvidence";
+import PilotEvidenceStatus from "../../components/PilotEvidenceStatus";
+import AudioRetroalimentacion from "../../components/AudioRetroalimentacion";
+import useMissionExpansion from "../../hooks/useMissionExpansion";
+import EnsayoOtrosMundos from "../../components/EnsayoOtrosMundos";
+import ContinuacionDeMision from "../../components/ContinuacionDeMision";
+import DetalleErroresDeMision from "../../components/DetalleErroresDeMision";
+import CabeceraCurricular from "../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../curriculum/activityCurriculum";
+import "../../styles/activityExperience.css";
 import { useAutoProgreso } from "../../hooks/useAutoProgreso";
 
 import {
@@ -110,7 +120,7 @@ const RETOS: Reto[] = [
     id: 1,
     imagen: reto1,
     pregunta:
-      "Observa el triángulo y selecciona la línea que pasa por el centro de la figura.",
+      "Observa el triángulo y selecciona la línea que parte del vértice A y pasa por el centro de la figura.",
     opciones: [
       { id: "A", texto: "Línea roja" },
       { id: "B", texto: "Línea azul inclinada" },
@@ -175,7 +185,7 @@ const RETOS: Reto[] = [
     id: 6,
     imagen: reto6,
     pregunta:
-      "Último reto: observa todas las líneas y selecciona la que pasa por el centro del triángulo.",
+      "Último reto: selecciona la línea marcada con una letra que parte del vértice P y llega al centro del triángulo.",
     opciones: [
       { id: "A", texto: "Línea A" },
       { id: "B", texto: "Línea D" },
@@ -571,6 +581,7 @@ function VideoCanvasTransparente({
 }
 
 function Actividad7MathGeometry() {
+ const mission=useMissionExpansion("mathgeometry-actividad-7");
   const navigate = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -637,20 +648,22 @@ function Actividad7MathGeometry() {
   const pistaActiva = PISTAS_ACT7[pistaSeleccionada];
   const progreso = Math.round((completados / RETOS.length) * 100);
 
+  const pilot=useGeometryEvidence("mathgeometry-actividad-7",mission,()=>({
+      errores,
+      retos_completados: completados,
+    }));
+
   useAutoProgreso({
     completada: modal === "completado",
     codigo: "mathgeometry-actividad-7",
     mundo: "MathGeometry",
     tema: "Rectas notables de un triángulo",
     titulo: "La Fortaleza Triangular",
-    aciertos: RETOS.length,
-    totalPreguntas: RETOS.length,
+    aciertos: RETOS.length + mission.correctCount,
+    totalPreguntas: mission.total,
     tiempoSegundos: segundos,
     xpBase: 240,
-    respuestas: {
-      errores,
-      retos_completados: RETOS.length,
-    },
+    respuestas: pilot.evidence(),
   });
 
   const tiempo = useMemo(() => {
@@ -1158,7 +1171,8 @@ function Actividad7MathGeometry() {
 
     if (retoCelebrado >= RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1260,6 +1274,7 @@ function Actividad7MathGeometry() {
 
   const comprobar = () => {
     if (!seleccion || pausado || aciertoEspecial !== null) return;
+    pilot.recordNative(retoActual,seleccion);
 
     if (seleccion === reto.correcta) {
       setRevision("correcto");
@@ -1286,7 +1301,8 @@ function Actividad7MathGeometry() {
 
     if (retoActual === RETOS.length - 1) {
       setCompletados(RETOS.length);
-      setModal("completado");
+      mission.finishNative();
+      if(mission.ready && mission.allCorrect) setModal("completado"); else mission.review();
       return;
     }
 
@@ -1296,6 +1312,8 @@ function Actividad7MathGeometry() {
   };
 
   const reiniciar = () => {
+    mission.reset();
+    pilot.resetSession();
     setRetoActual(0);
     setSeleccion(null);
     setRevision("pendiente");
@@ -1361,13 +1379,14 @@ function Actividad7MathGeometry() {
 
     setModalReproduciendo(false);
     setModal(null);
-    setSeleccion(null);
     setRevision("pendiente");
     setTextoSombra(TEXTO_INICIAL_SOMBRA);
     setIndiceSombraActivo(-1);
     setProgresoSombraActivo(0);
     setReinicioModal((valor) => valor + 1);
-  };
+  
+ mission.beginCorrection();
+};
 
   const videoModal =
     modal === "profesor"
@@ -1388,7 +1407,7 @@ function Actividad7MathGeometry() {
         : "Mensaje de Sombra";
 
   return (
-    <main className="act7geo-page">
+    <main className="act7geo-page mn-activity">
       <button
         type="button"
         className={`act7geo-hamburger-btn ${
@@ -1470,22 +1489,7 @@ function Actividad7MathGeometry() {
           </button>
         </nav>
 
-        <div className="act7geo-sidebar-progress-area">
-          <article className="act7geo-side-week-card">
-            <div className="act7geo-side-week-head">
-              <strong>Progreso semanal</strong>
-              <span>Nivel 3</span>
-            </div>
-
-            <div className="act7geo-side-progress">
-              <span>★</span>
-              <div>
-                <b style={{ width: "60%" }} />
-              </div>
-              <strong>60%</strong>
-            </div>
-          </article>
-        </div>
+        <div className="mn-sidebar-mission"><span>Tu misión</span><strong>{activityCurriculum["mathgeometry-actividad-7"].objective}</strong></div>
       </aside>
 
       <section className="act7geo-content">
@@ -1496,26 +1500,9 @@ function Actividad7MathGeometry() {
         />
 
         <section className="act7geo-main">
-          <div className="act7geo-breadcrumb">
-            <button type="button" onClick={() => irARuta("/seleccion-mundos")}>
-              Mundos
-            </button>
+        <CabeceraCurricular curriculum={activityCurriculum["mathgeometry-actividad-7"]} />
+        
 
-            <span>›</span>
-
-            <button
-              type="button"
-              onClick={() => irARuta("/actividades/geometria")}
-            >
-              Actividades MathGeometry
-            </button>
-
-            <span>›</span>
-
-            <button type="button" className="act7geo-breadcrumb-current">
-              Act 7
-            </button>
-          </div>
 
           <header className="act7geo-topbar">
             <div className="act7geo-title-area">
@@ -1642,7 +1629,8 @@ function Actividad7MathGeometry() {
             </div>
           </section>
 
-          <div className="act7geo-layout">
+          <EnsayoOtrosMundos activityId="mathgeometry-actividad-7"/>
+<div className="act7geo-layout">
             <section className="act7geo-game-card">
               <div className="act7geo-laser-frame">
                 <img
@@ -1657,6 +1645,7 @@ function Actividad7MathGeometry() {
                   </div>
                 )}
               </div>
+              <h2>{reto.pregunta}</h2>
               <div
                 className="act7geo-options"
                 style={
@@ -1793,6 +1782,8 @@ function Actividad7MathGeometry() {
               </article>
             </aside>
           </div>
+ 
+
 
           {/* Barra inferior de resultados, adaptada de la Actividad 5. */}
           <section className="act7geo-bottom-stats">
@@ -1830,7 +1821,9 @@ function Actividad7MathGeometry() {
               </div>
             </article>
           </section>
-        </section>
+        <PilotEvidenceStatus pilot={pilot}/>
+        <ContinuacionDeMision expansion={mission} onComplete={()=>{setModal("completado");}} onRestart={reiniciar}/>
+</section>
 
         <footer className="act7geo-footer">
           <div className="act7geo-footer-icons">
@@ -1994,7 +1987,7 @@ function Actividad7MathGeometry() {
               />
             )}
 
-            <div className="act7geo-modal-content">
+            <div className="act7geo-modal-content"><AudioRetroalimentacion/>
               <span className="act7geo-modal-badge">
                 <FiVolume2 />
                 {modal === "profesor"
@@ -2188,6 +2181,8 @@ function Actividad7MathGeometry() {
 
               {modal === "sombra" && (
                 <div className="act7geo-modal-script-lines act7geo-sombra-script-lines">
+ <DetalleErroresDeMision items={[...(RETOS.map((r,i)=>({id:`native-${i}`,title:i===retoActual?reto.pregunta:`Reto geométrico ${i+1}`,answer:i===retoActual?(reto.opciones.find(o=>o.id===seleccion)?.texto||"Sin respuesta"):i<completados?"Validado en la misión":"",correct:i<completados?true:i===retoActual?Boolean(seleccion===reto.correcta):null,hint:i===retoActual?`Revisa la propiedad indicada en el reto. La opción que corresponde es: ${reto.opciones.find(o=>o.id===reto.correcta)?.texto}. Consulta la pista para justificarla.`:"Puedes consultar la pista del personaje cuando llegues a este reto.",target:".act7geo-layout"})).filter((_,i)=>i<=retoActual)),...mission.items]} onCorrect={(item)=>{setModal(null); setRevision("pendiente"); audioSombraRef.current?.pause(); mission.beginCorrection(item);}} onRestart={reiniciar}/>
+
                   {GUION_SOMBRA_ERROR.map((linea, indice) => (
                     <p
                       key={linea}
@@ -2274,7 +2269,7 @@ function Actividad7MathGeometry() {
               }}
             />
 
-            <div className="act7geo-complete-content">
+            <div className="act7geo-complete-content"><AudioRetroalimentacion/>
               <span>🏆 Fortaleza protegida</span>
               <h2>¡Fortaleza Triangular protegida!</h2>
 
@@ -2316,7 +2311,7 @@ function Actividad7MathGeometry() {
                 <article>
                   <FiCheck />
                   <span>Retos</span>
-                  <strong>6/6</strong>
+                  <strong>{mission.total}/{mission.total}</strong>
                 </article>
                 <article>
                   <FiTarget />

@@ -1,3 +1,12 @@
+import useMathNumbersEvidence from "../../../hooks/useMathNumbersEvidence";
+import PilotEvidenceStatus from "../../../components/PilotEvidenceStatus";
+import CierreDeMision from "../../../components/CierreDeMision";
+import useMissionExpansion from "../../../hooks/useMissionExpansion";
+import EnsayoDeMision from "../../../components/EnsayoDeMision";
+import RetosDeMision from "../../../components/RetosDeMision";
+import CabeceraCurricular from "../../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../../curriculum/activityCurriculum";
+import "../../../styles/activityExperience.css";
 import "./EscuadronTactico.css";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -113,6 +122,7 @@ type OperationOption = {
 };
 
 type SequenceChallengeProps = {
+  disabled?: boolean;
   number: number;
   title: string;
   expression: string;
@@ -209,6 +219,7 @@ const arraysAreEqual = (
 
 
 function SequenceChallenge({
+  disabled=false,
   number,
   title,
   expression,
@@ -235,6 +246,7 @@ function SequenceChallenge({
           type="button"
           className="mnx-escuadron-reset-mini"
           onClick={onReset}
+          disabled={disabled}
           aria-label={`Reiniciar ${title}`}
           title="Reiniciar reto"
         >
@@ -258,7 +270,7 @@ function SequenceChallenge({
                 alreadySelected ? "is-selected" : ""
               }`}
               onClick={() => onSelect(option.key)}
-              disabled={alreadySelected}
+              disabled={disabled || alreadySelected}
             >
               <span>{option.symbol}</span>
               <small>{option.name}</small>
@@ -278,6 +290,7 @@ function SequenceChallenge({
               className={`mnx-escuadron-sequence-slot ${
                 operation ? "is-filled" : ""
               }`}
+              disabled={disabled}
               onClick={() => operation && onRemove(index)}
               aria-label={
                 operation
@@ -799,6 +812,7 @@ function FloatingByteHint({
 }
 
 export function EscuadronTactico() {
+  const mission = useMissionExpansion("mathnumbers-escuadron-tactico");
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
 
@@ -1140,6 +1154,8 @@ export function EscuadronTactico() {
   };
 
   const repetirActividad = () => {
+    mission.reset();
+    pilotEvidence.resetSession();
     limpiarTemporizadorResultado();
 
     guardandoRef.current = false;
@@ -1163,7 +1179,20 @@ export function EscuadronTactico() {
     );
   };
 
+  const pilotEvidence = useMathNumbersEvidence("mathnumbers-escuadron-tactico", mission, () => ({
+            reto_1: challengeOne,
+            reto_2: challengeTwo,
+            reto_3: challengeThree,
+            explicacion_texto: explanation.trim(),
+          }));
+
   const verificar = async () => {
+    if (!mission.ready) {
+      showToast("Completa los códigos que faltan en los nuevos retos de la misión.", true);
+      document.querySelector(`[data-mission="mathnumbers-escuadron-tactico"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+
     if (guardandoRef.current) {
       return;
     }
@@ -1195,12 +1224,13 @@ export function EscuadronTactico() {
       correctChallengeThree,
     );
 
+    const pilotSnapshot = pilotEvidence.reviewForClose();
     const totalCorrect =
       Number(challengeOneCorrect) +
       Number(challengeTwoCorrect) +
-      Number(challengeThreeCorrect);
+      Number(challengeThreeCorrect) + mission.correctCount;
 
-    const completed = totalCorrect === 3;
+    const completed = totalCorrect === mission.total;
 
     const tiempoSegundos = Math.max(
       1,
@@ -1222,17 +1252,13 @@ export function EscuadronTactico() {
           actividad_titulo:
             "Escuadrón Táctico: Desactivación",
           aciertos: totalCorrect,
-          total_preguntas: 3,
+          total_preguntas: mission.total,
           tiempo_segundos: tiempoSegundos,
           xp_base: 45,
           completada: completed,
-          respuestas: {
-            reto_1: challengeOne,
-            reto_2: challengeTwo,
-            reto_3: challengeThree,
-            explicacion_texto: explanation.trim(),
-          },
+          respuestas: pilotSnapshot,
         });
+      mission.recordResult({correct:totalCorrect,seconds:tiempoSegundos,xp:Number(resultado.progreso.xp_obtenido ?? 0)});
 
       inicioActividadRef.current = Date.now();
 
@@ -1295,7 +1321,7 @@ export function EscuadronTactico() {
   };
 
   return (
-    <main className="mnx-escuadron-page">
+    <main className="mnx-escuadron-page mn-activity">
       <button
         type="button"
         className={`mnx-escuadron-hamburger ${
@@ -1401,6 +1427,8 @@ export function EscuadronTactico() {
       </aside>
 
       <section className="mnx-escuadron-main">
+        <CabeceraCurricular curriculum={activityCurriculum["mathnumbers-escuadron-tactico"]} />
+
         <div className="mnx-escuadron-top-actions">
           <button
             type="button"
@@ -1564,7 +1592,8 @@ export function EscuadronTactico() {
           </div>
         </header>
 
-        <section className="mnx-escuadron-activity-grid">
+        <EnsayoDeMision activityId="mathnumbers-escuadron-tactico" />
+          <section className="mnx-escuadron-activity-grid">
           <article className="mnx-escuadron-art">
             <div className="mnx-escuadron-visual">
               <img
@@ -1637,8 +1666,8 @@ export function EscuadronTactico() {
               </article>
             </div>
           </section>
-
-          <SequenceChallenge
+<SequenceChallenge
+            disabled={mission.correctOnly && arraysAreEqual(challengeOne,correctChallengeOne)}
             number={1}
             title="Reto 1"
             expression="5 + (3 × 2)"
@@ -1660,6 +1689,7 @@ export function EscuadronTactico() {
           />
 
           <SequenceChallenge
+            disabled={mission.correctOnly && arraysAreEqual(challengeTwo,correctChallengeTwo)}
             number={2}
             title="Reto 2"
             expression="12 − 4 ÷ 2"
@@ -1800,7 +1830,9 @@ export function EscuadronTactico() {
               onReset={() => setChallengeThree([])}
             />
 
-            <div className="mnx-escuadron-explanation">
+            <PilotEvidenceStatus pilot={pilotEvidence} />
+            <RetosDeMision expansion={mission} disabled={guardandoProgreso} />
+<div className="mnx-escuadron-explanation">
               <label htmlFor="escuadron-explanation">
                 ¿Por qué primero va la multiplicación?
               </label>
@@ -1833,18 +1865,7 @@ export function EscuadronTactico() {
           </section>
 
           <section className="mnx-escuadron-actions">
-            <button
-              type="button"
-              className="mnx-escuadron-check-btn"
-              onClick={verificar}
-              disabled={guardandoProgreso}
-              aria-busy={guardandoProgreso}
-            >
-              <FiCheckCircle />
-              {guardandoProgreso
-                ? "Guardando progreso..."
-                : "Comprobar secuencia"}
-            </button>
+            
 
             <p className="mnx-escuadron-progress">
               Progreso: {selectedOperations}/7 cables
@@ -1874,7 +1895,7 @@ export function EscuadronTactico() {
             </article>
           </section>
         </section>
-      </section>
+      <CierreDeMision onFinish={verificar} busy={guardandoProgreso}/></section>
 
       <button
         className="mnx-escuadron-logout-float"
@@ -1893,6 +1914,9 @@ export function EscuadronTactico() {
 
       {resultModalOpen && (
         <ResultModal
+          reviewItems={[...([challengeOne,challengeTwo,challengeThree].map((answer,i)=>({id:`native-${i}`,title:`Secuencia táctica ${i+1}`,answer:answer.join(" → "),correct:arraysAreEqual(answer,[correctChallengeOne,correctChallengeTwo,correctChallengeThree][i]),hint:"Resuelve primero agrupaciones; después multiplicaciones y divisiones de izquierda a derecha; finalmente sumas y restas.",target:`.mnx-escuadron-challenge-card:nth-child(${i+1})`}))),...mission.items]}
+          onCorrect={(item)=>{setResultModalOpen(false);mission.beginCorrection(item);}}
+          summary={mission.result ?? undefined}
           kind={resultModalKind}
           nextRoute={espejosBovedaRoute}
           retryRoute={escuadronRoute}

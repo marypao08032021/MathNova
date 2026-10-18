@@ -1,3 +1,14 @@
+import {useLiveEvidence} from '../../../utils/livePresence';
+import usePilotEvidence from "../../../hooks/usePilotEvidence";
+import PilotEvidenceStatus from "../../../components/PilotEvidenceStatus";
+import {resetPilotSession} from "../../../utils/pilotEvidence";
+import CierreDeMision from "../../../components/CierreDeMision";
+import useMissionExpansion from "../../../hooks/useMissionExpansion";
+import EnsayoDeMision from "../../../components/EnsayoDeMision";
+import RetosDeMision from "../../../components/RetosDeMision";
+import CabeceraCurricular from "../../../components/CabeceraCurricular";
+import { activityCurriculum } from "../../../curriculum/activityCurriculum";
+import "../../../styles/activityExperience.css";
 import "./RadarSupervivencia.css";
 import audioIntroSumaRadar from "../../../assets/mathnumbers/02-radar-supervivencia/intro_suma_radar.mp3";
 import audioConsejoSumaRadar from "../../../assets/mathnumbers/02-radar-supervivencia/consejo_suma_radar.mp3";
@@ -716,6 +727,8 @@ function FloatingByteRadar() {
 }
 
 export function RadarSupervivencia() {
+  const mission = useMissionExpansion("mathnumbers-radar-supervivencia");
+  const pilot=usePilotEvidence("mathnumbers-radar-supervivencia");
   const navigate = useNavigate();
   const { toast, showToast } = useToast();
 
@@ -730,6 +743,7 @@ export function RadarSupervivencia() {
   const [placements, setPlacements] =
     useState<Record<string, string>>({});
 
+  useLiveEvidence("mathnumbers-radar-supervivencia",()=>({posiciones_usuario:placements,mission_expansion:mission.evidence}));
   const [explanation, setExplanation] =
     useState("");
 
@@ -789,6 +803,7 @@ export function RadarSupervivencia() {
     value: string,
   ) => {
     setPlacements((current) => {
+      if(mission.correctOnly && (current[target]===target || Object.entries(current).some(([signal,position])=>signal===position && position===value)))return current;
       const next: Record<string, string> = {};
 
       Object.entries(current).forEach(
@@ -886,6 +901,8 @@ export function RadarSupervivencia() {
    * Cierra el modal y deja Radar desde cero.
    */
   const repetirActividad = () => {
+    resetPilotSession("mathnumbers-radar-supervivencia");
+    mission.reset();
     if (modalTimerRef.current !== null) {
       window.clearTimeout(modalTimerRef.current);
       modalTimerRef.current = null;
@@ -910,6 +927,12 @@ export function RadarSupervivencia() {
   };
 
   const comprobar = async () => {
+    if (!mission.ready) {
+      showToast("Completa los códigos que faltan en los nuevos retos de la misión.", true);
+      document.querySelector(`[data-mission="mathnumbers-radar-supervivencia"]`)?.scrollIntoView({behavior:"smooth",block:"center"});
+      return;
+    }
+
     if (guardandoProgreso) {
       return;
     }
@@ -923,12 +946,13 @@ export function RadarSupervivencia() {
       return;
     }
 
+    mission.review();
     const total = targets.filter(
       (target) =>
         placements[target] === target,
-    ).length;
+    ).length + mission.correctCount;
 
-    const esCorrecto = total === targets.length;
+    const esCorrecto = total === mission.total;
 
     const tiempoSegundos = Math.max(
       1,
@@ -949,15 +973,17 @@ export function RadarSupervivencia() {
           actividad_titulo:
             "El Radar de Supervivencia",
           respuestas: {
+            mission_expansion: mission.evidence,
             posiciones_usuario: placements,
             explicacion_texto: explanation.trim(),
           },
           aciertos: total,
-          total_preguntas: targets.length,
+          total_preguntas: mission.total,
           tiempo_segundos: tiempoSegundos,
           xp_base: 40,
           completada: esCorrecto,
         });
+      mission.recordResult({correct:total,seconds:tiempoSegundos,xp:Number(resultado.progreso.xp_obtenido ?? 0)});
 
       inicioActividadRef.current = Date.now();
 
@@ -1024,7 +1050,7 @@ export function RadarSupervivencia() {
 
 
   return (
-    <main className="mnx-radar-page">
+    <main className="mnx-radar-page mn-activity">
       <button
         type="button"
         className={`mnx-radar-hamburger ${
@@ -1159,6 +1185,8 @@ export function RadarSupervivencia() {
       </aside>
 
       <section className="mnx-radar-main">
+        <CabeceraCurricular curriculum={activityCurriculum["mathnumbers-radar-supervivencia"]} />
+
         <div className="mnx-radar-top-actions">
           <button
             type="button"
@@ -1224,7 +1252,8 @@ export function RadarSupervivencia() {
           <RadarSumaIntro />
         </header>
 
-        <section className="mnx-radar-activity-grid">
+        <EnsayoDeMision activityId="mathnumbers-radar-supervivencia" />
+          <section className="mnx-radar-activity-grid">
           <article className="mnx-radar-art">
             <div className="mnx-radar-visual">
               <img
@@ -1273,8 +1302,7 @@ export function RadarSupervivencia() {
 
             <NumberAxis variant="guide" />
           </section>
-
-          <section className="mnx-radar-placement-card">
+<section className="mnx-radar-placement-card">
             <div className="mnx-radar-question-head">
               <span>1</span>
 
@@ -1388,11 +1416,13 @@ export function RadarSupervivencia() {
 
               <NumberAxis variant="work" />
             </div>
-          </section>
+          <PilotEvidenceStatus pilot={pilot}/><RetosDeMision expansion={mission} disabled={guardandoProgreso} />
+            </section>
 
           <RadarSumaAdvice />
 
-          <section className="mnx-radar-question-card mnx-radar-question">
+          
+<section className="mnx-radar-question-card mnx-radar-question">
             <div className="mnx-radar-question-head">
               <span>2</span>
 
@@ -1430,21 +1460,10 @@ export function RadarSupervivencia() {
           </section>
 
           <section className="mnx-radar-actions">
-            <button
-              type="button"
-              className="mnx-radar-check-btn"
-              onClick={comprobar}
-              disabled={guardandoProgreso}
-              aria-busy={guardandoProgreso}
-            >
-              <FiCheckCircle />
-              {guardandoProgreso
-                ? "Guardando progreso..."
-                : "Comprobar posiciones"}
-            </button>
+            
 
             <p className="mnx-radar-progress">
-              Progreso: {progress}/4 señales
+              Progreso: {progress + mission.readyCount}/{mission.total} señales
               colocadas
             </p>
 
@@ -1473,7 +1492,7 @@ export function RadarSupervivencia() {
             </article>
           </section>
         </section>
-      </section>
+      <CierreDeMision onFinish={comprobar} busy={guardandoProgreso}/></section>
 
       <FloatingByteRadar />
 
@@ -1488,6 +1507,9 @@ export function RadarSupervivencia() {
 
       {resultModalOpen && (
         <ResultModal
+          reviewItems={[...(["-4","-2","3","5"].map((id,i)=>({id:`native-${i}`,title:`Señal ${id}`,answer:placements[id]||"",correct:placements[id]===id,hint:`Ubica la señal ${id}: los negativos están a la izquierda de cero y los positivos a la derecha.`,target:".mnx-radar-placement-card"}))),...mission.items]}
+          onCorrect={(item)=>{setResultModalOpen(false);mission.beginCorrection(item);}}
+          summary={mission.result ?? undefined}
           kind={resultModalKind}
           nextRoute={ascensorRoute}
           retryRoute={radarRoute}

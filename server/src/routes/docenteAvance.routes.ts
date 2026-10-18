@@ -1,3 +1,4 @@
+const {scopeStudent,scopeGroup}=require('../services/docenteScope');
 import { Router, Request, Response } from "express";
 
 type QueryResult<T> = {
@@ -260,6 +261,7 @@ function crearCteGruposAlumno(tablas: TablasAvance) {
       FROM public.grupo_alumnos ga
       INNER JOIN public.grupos g
         ON g.id_grupo = ga.id_grupo
+      WHERE ga.estado=true AND ${scopeGroup('g')}
       ORDER BY ga.id_alumno, ga.id_grupo DESC
     )
   `;
@@ -474,6 +476,7 @@ async function obtenerGrupos(tablas: TablasAvance) {
     FROM public.grupos g
     LEFT JOIN alumnos_grupo ag
       ON ag.id_grupo = g.id_grupo
+    WHERE ${scopeGroup('g')}
     ORDER BY g.nombre_grupo ASC;
   `);
 
@@ -587,7 +590,7 @@ router.get("/", async (req: Request, res: Response) => {
         ON ga.id_alumno = r.id_usuario
       LEFT JOIN progreso_actividad pa
         ON pa.id_usuario = r.id_usuario
-      WHERE LOWER(COALESCE(r.rol, '')) = 'estudiante'
+      WHERE ${scopeStudent('r')} AND LOWER(COALESCE(r.rol, '')) IN ('estudiante','alumno')
         AND COALESCE(r.estado, true) = true
         AND (
           $1::bigint IS NULL

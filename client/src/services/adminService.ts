@@ -1,7 +1,8 @@
 const API_URL = "/api/admin";
+const headers = () => ({Authorization: `Bearer ${localStorage.getItem("token") || ""}`});
 
 export const obtenerDashboardAdmin = async () => {
-  const response = await fetch(`${API_URL}/dashboard`);
+  const response = await fetch(`${API_URL}/dashboard`, {headers: headers()});
   const data = await response.json();
 
   if (!response.ok) {
@@ -12,7 +13,7 @@ export const obtenerDashboardAdmin = async () => {
 };
 
 export const obtenerUsuariosAdmin = async () => {
-  const response = await fetch(`${API_URL}/usuarios`);
+  const response = await fetch(`${API_URL}/usuarios`, {headers: headers()});
   const data = await response.json();
 
   if (!response.ok) {

@@ -1,0 +1,145 @@
+/* Mobile layout corrections. Colors and narrative assets remain page-owned. */
+@media (max-width: 850px) {
+  body .login-page { align-items:flex-start; padding:16px 12px; }
+  body .login-page .login-scene,
+  body .login-page .login-card-flip { height:auto; min-height:0; }
+  body .login-page .card-front { position:relative; inset:auto; }
+  body .login-page .login-card { grid-template-columns:minmax(0,1fr); min-height:0; height:auto; }
+  body .login-page .login-left { display:none; }
+  body .login-page .login-right { width:100%; min-width:0; padding:28px 20px; }
+  body .login-page .login-form { min-width:0; width:100%; }
+  body .mn-register-overlay { padding:12px; overflow:auto; }
+  body .mn-register-dialog { width:100%; max-width:480px; max-height:calc(100dvh - 24px); padding:44px 20px 20px; }
+  body .mn-register-dialog .input-box,
+  body .mn-register-dialog .terms { min-width:0; width:100%; }
+  body .mn-register-dialog .terms { align-items:flex-start; white-space:normal; }
+  body .mn-register-dialog .terms span { min-width:0; }
+  body :is(.login-error-modal,.mn-register-dialog,.mn-super-dialog,.admin-modal,.pb-modal,.res-modal-card),
+  body [role="dialog"]:not([class*="overlay"]):not(.intro-fullscreen),
+  body [role="alertdialog"]:not([class*="overlay"]) {
+    min-width:0 !important; max-width:calc(100vw - 24px) !important;
+    max-height:calc(100dvh - 24px) !important; overflow-y:auto !important;
+    overscroll-behavior:contain; -webkit-overflow-scrolling:touch;
+    overflow-wrap:break-word;
+  }
+  body :is(.mn-register-overlay,.login-error-overlay,.mn-activity-notice-overlay) { padding:12px; }
+  body [aria-modal="true"] :is(input,select,textarea) { max-width:100%; min-width:0; }
+  body [aria-modal="true"] :is(button,a) { white-space:normal; overflow-wrap:break-word; }
+  body [aria-modal="true"] button { min-height:44px; }
+  body :is(.mn-super,.mn-super-card,.mn-aula,.mn-aula-card,.mn-aula-filters) { min-width:0; }
+  body .mn-super-catalog { grid-template-columns:minmax(0,1fr); }
+  body .mn-aula-hero { gap:16px; }
+  body .mn-aula-hero div { min-width:0; }
+  body .mn-aula-actions > *, body .mn-aula-tabs > * { min-height:44px; white-space:normal; }
+  body .mn-aula-table { max-width:100%; -webkit-overflow-scrolling:touch; }
+  body .mn-aula-table select { min-width:140px; }
+  body .docente-page .docente-content { min-width:0; }
+  body .docente-page .docente-hero-actions { flex-wrap:wrap; }
+  body .docente-page .docente-hero-actions button { white-space:normal; max-width:100%; height:auto; min-height:44px; }
+  body .docente-page .docente-stats-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  body .docente-page .docente-sidebar { max-width:calc(100vw - 24px); min-width:0; }
+  body .docente-page .docente-sidebar-scroll { min-height:0; overflow-y:auto; }
+  body :is(.dashboard-content,.mundos-content,.perfil-content,.recompensas-content,.estadisticas-content) { min-width:0; max-width:100%; }
+  body .intro-fullscreen-top, body .intro-fullscreen-bottom { gap:12px; flex-wrap:wrap; }
+  body .intro-floating-button { min-height:44px; white-space:normal; }
+}
+@media (max-width: 600px) {
+  body .mn-aula table { font-size:13px; }
+  body .mn-aula td, body .mn-aula th { padding:10px 6px; }
+  body .mn-aula .mn-aula-actions > *,body .mn-aula .mn-aula-tabs > * { flex:1 1 100%; }
+  body .mn-super-search label { flex-basis:100%; }
+  body .docente-page .docente-stats-row { grid-template-columns:minmax(0,1fr); }
+  body .docente-page .docente-hero-text { width:100%; min-width:0; }
+  body .docente-page .docente-hero { min-height:0; height:auto; padding-bottom:24px; }
+  body :is(.mn-register-dialog,.login-error-modal) h1 { font-size:1.5rem; }
+  body .mn-super-pagination { justify-content:center; }
+  body .mn-super-pagination span { text-align:center; }
+  body [aria-modal="true"] :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]) { font-size:16px; }
+}
+@media (max-width:600px) {
+  body .mn-aula-permissions { overflow:visible; }
+  body .mn-aula-permissions :is(table,tbody) { display:block; width:100%; }
+  body .mn-aula-permissions thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  body .mn-aula-permissions tr { display:grid; grid-template-columns:28px minmax(0,1fr); padding:12px 0; border-bottom:1px solid #e2eaf6; }
+  body .mn-aula-permissions td { display:block; min-width:0; border:0; padding:4px; }
+  body .mn-aula-permissions td:last-child { grid-column:2; }
+  body .mn-aula-permissions td:last-child select { width:100%; min-width:0; }
+  body .mn-aula-permissions strong, body .mn-aula-permissions small { overflow-wrap:break-word; }
+  body .mn-aula-permissions input[type="checkbox"] { margin:10px 0; }
+}
+@media (max-width:600px) {
+  body [role="dialog"]:not([class*="overlay"]):not(.intro-fullscreen),
+  body [role="alertdialog"]:not([class*="overlay"]),
+  body .res-modal-card.res-modal-card,body .pb-modal.pb-modal,body .admin-modal.admin-modal {
+    grid-template-columns:minmax(0,1fr) !important; padding:20px 16px !important;
+  }
+  body [aria-modal="true"] :is([class$="-content"],[class$="-main"],[class$="-side"],[class$="-actions"],[class$="-controls"]) { min-width:0 !important; max-width:100%; }
+  body [aria-modal="true"] :is([class$="-actions"],[class$="-controls"]) { flex-wrap:wrap; height:auto; }
+  body [aria-modal="true"] :is([class$="-actions"],[class$="-controls"]) button { max-width:100%; flex-shrink:1; white-space:normal; }
+  body [aria-modal="true"] :is(video,img):not([class*="bg"]):not([class*="decoration"]) { max-width:100%; object-fit:contain; }
+}
+@media (max-width:850px) {
+  body .dashboard-page .stats-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  body .dashboard-page .stats-row > * { min-width:0; }
+  body .fbk-page .fbk-content { min-width:0; max-width:100%; }
+  body .fbk-page .fbk-topbar { flex-wrap:wrap; gap:16px; }
+  body .fbk-page .fbk-topbar > div { min-width:0; max-width:100%; }
+  body .fbk-page .fbk-topbar h1 { font-size:clamp(26px,6vw,40px); overflow-wrap:break-word; }
+  body .mathdatax-header { grid-template-columns:minmax(0,1fr); flex-wrap:wrap; }
+  body .mathdatax-title-box { min-width:0; max-width:100%; }
+  body .mathdatax-status-tabs { flex-wrap:wrap; }
+  body .docente-page .admin-table-bottom { min-width:0; max-width:100%; flex-wrap:wrap; gap:12px; }
+  body .mnx-simulador-welcome, body .mnx-simulador-speech { min-width:0; max-width:100%; }
+  body .mnx-simulador-welcome { grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width:600px) {
+  body :is(.act5geo-options,.act6geo-options) { grid-template-columns:repeat(2,minmax(0,1fr)) !important; overflow:visible !important; }
+  body :is(.act5geo-option,.act6geo-option) { min-width:0 !important; white-space:normal; }
+  body .dashboard-page .stats-row { grid-template-columns:minmax(0,1fr); }
+  body .fbk-page .fbk-topbar { flex-direction:column; align-items:stretch; }
+  body .mathdatax-status-tabs button { flex:1 1 100%; min-height:44px; }
+}
+@media (max-width:850px) {
+  body .mnx-simulador-header { grid-template-columns:minmax(0,1fr) !important; }
+  body .mnx-simulador-header .mnx-simulador-welcome { min-width:0 !important; width:100%; max-width:100%; grid-template-columns:minmax(0,1fr) !important; }
+  body .mnx-simulador-header .mnx-simulador-speech { min-width:0 !important; width:100%; max-width:100%; }
+  body .mnx-simulador-speech p { width:auto !important; max-width:100%; min-width:0; }
+  body .rmp-page .rmp-bitacora-card { min-width:0; max-width:100%; }
+  body .rmp-page .rmp-bitacora-header { flex-wrap:wrap; }
+  body .rmp-page .rmp-bitacora-nota { min-width:0; max-width:100%; }
+}
+@media (max-width:600px) {
+  body .login-page input,body .mn-aula select { font-size:16px; }
+  body .mn-aula select { min-height:44px; }
+}
+body .mn-aula-notice { position:relative; z-index:5; min-width:0; max-width:100%; }
+@media (max-width:1500px) {
+  body .eval-page .eval-toolbar { grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; margin-left:0; margin-right:0; }
+  body .eval-page .eval-toolbar > * { min-width:0; max-width:100%; }
+  body .eval-page .eval-toolbar-actions { flex-wrap:wrap; }
+}
+@media (max-width:850px) {
+  body .eval-page .eval-toolbar { grid-template-columns:minmax(0,1fr); }
+  body .eval-page .eval-toolbar-actions { grid-column:auto; }
+}
+@media (max-width:850px) {
+  body .mnx-radar-activity-grid { grid-template-columns:minmax(0,1fr); }
+  body .mnx-radar-signals { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  body .mnx-radar-placement-card { min-width:0; max-width:100%; }
+}
+@media (max-width:380px) {
+  body .mnx-radar-signals { grid-template-columns:minmax(0,1fr); }
+}
+body .mathdatax-page .mathdatax-header { flex-wrap:wrap; }
+body .mathdatax-page .mathdatax-search-area { min-width:0; max-width:100%; }
+@media (max-width:850px) {
+  body .mathdatax-modal-overlay { padding:12px; }
+  body .mathdatax-modal-mundo { flex-direction:column; grid-template-columns:minmax(0,1fr); overflow-y:auto; }
+  body .mathdatax-modal-imagen-wrap { width:100%; min-width:0; min-height:0; height:140px; }
+  body .mathdatax-modal-imagen-wrap img { height:120px; width:auto; max-width:100%; object-fit:contain; }
+  body .mathdatax-modal-cuerpo { min-width:0; padding:20px; }
+  body .mathdatax-modal-comenzar { min-height:44px; max-width:100%; white-space:normal; }
+}
+@media (max-width:850px) {
+  body .mnx-radar-activity-grid { grid-template-areas:"guide" "art" "placement" "reminder" "question" "actions"; }
+}

@@ -1,0 +1,993 @@
+{
+  "mathnumbers-cofre-bienvenida": {
+    "model": "fracciones",
+    "questions": [
+      {
+        "kind": "fraction",
+        "prompt": "Escribe 0,4 como fracción (o una fracción equivalente).",
+        "answer": 0.4,
+        "feedback": "0,4 son cuatro décimos: 4/10 = 2/5.",
+        "id": "q2"
+      },
+      {
+        "kind": "number",
+        "prompt": "Convierte 7/20 a decimal.",
+        "answer": 0.35,
+        "feedback": "Multiplica numerador y denominador por 5: 35/100.",
+        "id": "q3"
+      },
+      {
+        "kind": "fraction",
+        "prompt": "Una botella contiene 0,125 litros. Escribe esa cantidad como fracción.",
+        "answer": 0.125,
+        "feedback": "125/1000 = 1/8.",
+        "id": "q4"
+      },
+      {
+        "kind": "number",
+        "prompt": "Una cuerda de 3,5 m se reparte en 5 partes iguales. ¿Cuántos metros mide cada parte?",
+        "answer": 0.7,
+        "feedback": "3,5 ÷ 5 = 0,7 m.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Explica dos estrategias distintas para convertir 3/4 a decimal.",
+        "rubric": "Debe explicar división 3÷4 y equivalencia 75/100; comparar por qué dan la misma cantidad.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathnumbers-cofre-bienvenida",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Al cambiar numerador o denominador, ¿cómo cambian la parte coloreada y el decimal? Busca dos fracciones equivalentes.",
+    "nativeCount": 2,
+    "totalCount": 7
+  },
+  "mathnumbers-radar-supervivencia": {
+    "model": "recta",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "Escribe un número a la mitad entre −0,5 y 0,5.",
+        "answer": 0,
+        "feedback": "El cero queda a igual distancia.",
+        "id": "q4"
+      },
+      {
+        "kind": "number",
+        "prompt": "En una recta, cada división vale 0,25. Una señal está tres divisiones a la izquierda de cero. ¿Cuál es su coordenada?",
+        "answer": -0.75,
+        "feedback": "Tres veces −0,25 = −0,75.",
+        "id": "q5"
+      },
+      {
+        "kind": "choice",
+        "prompt": "Entre 1/4 y 1/2…",
+        "answer": "hay infinitos números",
+        "options": [
+          "no hay otro número",
+          "hay infinitos números",
+          "solo está 1/3"
+        ],
+        "feedback": "Por ejemplo 3/8 está entre ambos; puedes volver a hallar puntos medios.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Ordena −1/2, −0,25 y 0,1. Escribe otro número entre 1/4 y 1/2 y explica si siempre puedes encontrar uno más. ¿Existe un entero entre −3 y −2?",
+        "rubric": "Orden −0,5 < −0,25 < 0,1; producir un número como 3/8; justificar nuevos puntos medios y distinguir densidad de racionales de ausencia de enteros entre dos enteros consecutivos.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathnumbers-radar-supervivencia",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Cambia las posiciones respecto al cero: ¿cuál número es mayor y cómo lo muestra la recta?",
+    "nativeCount": 4,
+    "totalCount": 8
+  },
+  "mathnumbers-ascensor-bunker": {
+    "model": "recta",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "Entre −3/2, −1,25 y 0,75, ¿cuál es menor? Escribe su valor.",
+        "answer": -1.5,
+        "feedback": "−3/2=−1,5 está a la izquierda de −1,25 y 0,75.",
+        "id": "q4"
+      },
+      {
+        "kind": "number",
+        "prompt": "¿Qué número está a la mitad entre −3 y −2?",
+        "answer": -2.5,
+        "feedback": "−2,5 está a 0,5 de ambos extremos.",
+        "id": "q5"
+      },
+      {
+        "kind": "open",
+        "prompt": "Un alumno dice que −5 es mayor que −2 porque 5>2. Explica su error usando el contexto del ascensor.",
+        "rubric": "Distinguir valor absoluto y orden; −5 está tres pisos por debajo de −2; relacionar con el cero.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q6"
+      }
+    ],
+    "id": "mathnumbers-ascensor-bunker",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Interpreta A como el piso inicial y B como el final. ¿Cómo distingues subir, bajar y la distancia recorrida?",
+    "nativeCount": 5,
+    "totalCount": 8
+  },
+  "mathnumbers-escuadron-tactico": {
+    "model": "operaciones",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "Calcula 24 ÷ 6 × 2.",
+        "answer": 8,
+        "feedback": "División y multiplicación tienen igual prioridad: (24÷6)×2.",
+        "id": "q3"
+      },
+      {
+        "kind": "number",
+        "prompt": "Calcula 20 − 8 + 3.",
+        "answer": 15,
+        "feedback": "Suma y resta tienen igual prioridad: (20−8)+3.",
+        "id": "q4"
+      },
+      {
+        "kind": "number",
+        "prompt": "Calcula −2 + 3 × (5 − 1).",
+        "answer": 10,
+        "feedback": "5−1=4, 3×4=12, −2+12=10.",
+        "id": "q5"
+      },
+      {
+        "kind": "number",
+        "prompt": "Calcula 2³ + 12 ÷ 3.",
+        "answer": 12,
+        "feedback": "8+4=12.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Compara 24÷6×2 con 24÷(6×2). Explica por qué dan resultados distintos.",
+        "rubric": "Obtener 8 y 2; justificar igual prioridad y orden de izquierda a derecha frente a la agrupación.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q8"
+      }
+    ],
+    "id": "mathnumbers-escuadron-tactico",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Compara una expresión con paréntesis y otra sin ellos. ¿Qué operación se hace primero en cada caso?",
+    "nativeCount": 3,
+    "totalCount": 8
+  },
+  "mathnumbers-espejos-boveda": {
+    "model": "propiedades",
+    "questions": [
+      {
+        "kind": "choice",
+        "prompt": "¿Qué propiedad explica 4+7 = 7+4?",
+        "answer": "Conmutativa",
+        "options": [
+          "Conmutativa",
+          "Distributiva",
+          "Asociativa"
+        ],
+        "feedback": "Se intercambia el orden de sumandos.",
+        "id": "q1"
+      },
+      {
+        "kind": "choice",
+        "prompt": "¿Qué propiedad explica (2+3)+5 = 2+(3+5)?",
+        "answer": "Asociativa",
+        "options": [
+          "Asociativa",
+          "Distributiva",
+          "Conmutativa"
+        ],
+        "feedback": "Cambia la agrupación sin cambiar el orden.",
+        "id": "q2"
+      },
+      {
+        "kind": "number",
+        "prompt": "Completa: 3×(4+2) = 3×4 + __.",
+        "answer": 6,
+        "feedback": "La multiplicación se distribuye: 3×2=6.",
+        "id": "q3"
+      },
+      {
+        "kind": "number",
+        "prompt": "Calcula 5×(−2+6) usando la distributiva.",
+        "answer": 20,
+        "feedback": "5×(−2)+5×6=−10+30=20.",
+        "id": "q5"
+      },
+      {
+        "kind": "open",
+        "prompt": "Produce y explica una igualdad conmutativa, una asociativa y una distributiva usando números con signo. No basta escribir el nombre de la propiedad.",
+        "rubric": "Tres igualdades válidas; identificar cambio de orden, cambio de agrupación y distribución de un factor; conservar el valor en cada lado.",
+        "feedback": "Tu docente revisará las igualdades y su explicación.",
+        "id": "q7"
+      },
+      {
+        "kind": "open",
+        "prompt": "Da un contraejemplo para mostrar que la división no es conmutativa y explica qué demuestra.",
+        "rubric": "Usar dos números no nulos, calcular ambos cocientes y mostrar que son distintos; un ejemplo favorable no prueba una propiedad general.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q8"
+      }
+    ],
+    "id": "mathnumbers-espejos-boveda",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Prueba también números negativos. ¿Qué conserva la suma al cambiar el orden y por qué la resta se comporta distinto?",
+    "nativeCount": 2,
+    "totalCount": 8
+  },
+  "mathnumbers-puente-prioridades": {
+    "model": "operaciones",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "Calcula 8 + 2 × 5.",
+        "answer": 18,
+        "feedback": "2×5=10; 8+10=18.",
+        "id": "q1"
+      },
+      {
+        "kind": "number",
+        "prompt": "Calcula (8+2)×5.",
+        "answer": 50,
+        "feedback": "La suma agrupada se hace primero.",
+        "id": "q2"
+      },
+      {
+        "kind": "number",
+        "prompt": "Calcula 36÷(3×4).",
+        "answer": 3,
+        "feedback": "3×4=12; 36÷12=3.",
+        "id": "q3"
+      },
+      {
+        "kind": "number",
+        "prompt": "Calcula 36÷3×4.",
+        "answer": 48,
+        "feedback": "(36÷3)×4=12×4=48.",
+        "id": "q4"
+      },
+      {
+        "kind": "open",
+        "prompt": "Un alumno obtuvo 50 en 8+2×5. Explica su procedimiento y corrígelo sin cambiar la expresión.",
+        "rubric": "Identificar que sumó primero; justificar multiplicación previa, calcular 18 y distinguir de (8+2)×5.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathnumbers-puente-prioridades",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Compara a+b×3 y (a+b)×3. Predice los resultados antes de mover un control y comprueba tu explicación.",
+    "nativeCount": 2,
+    "totalCount": 7
+  },
+  "mathnumbers-enigma-variables": {
+    "model": "algebra",
+    "questions": [
+      {
+        "kind": "algebra",
+        "prompt": "Un taxi cobra $20 de inicio y $8 por kilómetro x. Escribe el costo.",
+        "answer": [
+          8,
+          20
+        ],
+        "feedback": "Costo = 8x+20.",
+        "variable": "x",
+        "id": "q4"
+      },
+      {
+        "kind": "algebra",
+        "prompt": "Un rectángulo mide x de largo y 3 de ancho. Expresa el perímetro.",
+        "answer": [
+          2,
+          6
+        ],
+        "feedback": "x+3+x+3 = 2x+6.",
+        "variable": "x",
+        "id": "q5"
+      },
+      {
+        "kind": "number",
+        "prompt": "Evalúa 2x+6 cuando x=5.",
+        "answer": 16,
+        "feedback": "2×5+6=16.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Inventa una situación que se represente con 2x+3. Explica qué significan x, 2 y 3.",
+        "rubric": "La situación debe tener dos grupos de la cantidad variable y tres unidades adicionales; definir unidades y variable.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathnumbers-enigma-variables",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Cambia los grupos y la cantidad adicional. ¿Qué representa cada término de la expresión y cómo se comprueba al sustituir?",
+    "nativeCount": 3,
+    "totalCount": 7
+  },
+  "mathnumbers-simulador-codigos": {
+    "model": "patrones",
+    "questions": [
+      {
+        "kind": "algebra",
+        "prompt": "Los términos son 3,6,9,12,… El primero corresponde a n=1. Escribe la regla.",
+        "answer": [
+          3,
+          0
+        ],
+        "feedback": "aₙ=3n.",
+        "variable": "n",
+        "id": "q1"
+      },
+      {
+        "kind": "algebra",
+        "prompt": "Los términos son 5,7,9,11,… n empieza en 1. Escribe la regla.",
+        "answer": [
+          2,
+          3
+        ],
+        "feedback": "aₙ=2n+3.",
+        "variable": "n",
+        "id": "q3"
+      },
+      {
+        "kind": "algebra",
+        "prompt": "Los términos son 10,7,4,1,… n empieza en 1. Escribe la regla.",
+        "answer": [
+          -3,
+          13
+        ],
+        "feedback": "aₙ=13−3n.",
+        "variable": "n",
+        "id": "q5"
+      },
+      {
+        "kind": "number",
+        "prompt": "Una figura usa 4 palitos al inicio y agrega 3 por figura. ¿Cuántos usa la figura 8?",
+        "answer": 25,
+        "feedback": "4+3×7=25; regla 3n+1.",
+        "id": "q7"
+      },
+      {
+        "kind": "open",
+        "prompt": "Construye una sucesión de figuras que siga 3n+1 y explica cómo la regla permite hallar un término distante.",
+        "rubric": "Mostrar o describir 4,7,10,… elementos y la parte que se agrega; verificar n=1 y un término distante.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q8"
+      }
+    ],
+    "id": "mathnumbers-simulador-codigos",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Cambia la diferencia y la constante de la regla. Relaciona las primeras figuras con su posición y con un término distante.",
+    "nativeCount": 3,
+    "totalCount": 8
+  },
+  "mathgeometry-actividad-1": {
+    "model": "figuras",
+    "questions": [
+      {
+        "kind": "construction",
+        "prompt": "Construye un triángulo isósceles con base A(1,1), B(9,1). Coloca el tercer vértice arriba de la base.",
+        "construction": "isosceles",
+        "feedback": "El vértice debe estar en x=5 y por encima de y=1.",
+        "id": "q4"
+      },
+      {
+        "kind": "construction",
+        "prompt": "Construye un rectángulo que NO sea cuadrado. Ajusta su ancho y alto.",
+        "construction": "rectangle",
+        "feedback": "Ambas dimensiones deben ser positivas y diferentes.",
+        "id": "q5"
+      },
+      {
+        "kind": "open",
+        "prompt": "Dibuja en tu cuaderno un cuadrado girado y un rectángulo no cuadrado. Explica qué propiedades usaste, no solo su apariencia.",
+        "rubric": "Verificar lados y ángulos; explicar inclusión cuadrado/rectángulo y que el giro no cambia sus propiedades.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q6"
+      }
+    ],
+    "id": "mathgeometry-actividad-1",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Cambia ancho y alto: ¿cuándo el rectángulo también es cuadrado y qué propiedades se conservan?",
+    "nativeCount": 3,
+    "totalCount": 6
+  },
+  "mathgeometry-actividad-2": {
+    "model": "segmentos",
+    "questions": [
+      {
+        "kind": "choice",
+        "prompt": "Para unir directamente A y B sin prolongar el trazo, ¿qué objeto usas?",
+        "answer": "Segmento",
+        "options": [
+          "Recta",
+          "Semirrecta",
+          "Segmento"
+        ],
+        "feedback": "Un segmento tiene dos extremos.",
+        "id": "q1"
+      },
+      {
+        "kind": "number",
+        "prompt": "En una recta, A=−3 y B=4. ¿Cuál es la distancia?",
+        "answer": 7,
+        "feedback": "|4−(−3)|=7 unidades.",
+        "id": "q2"
+      },
+      {
+        "kind": "number",
+        "prompt": "A=1,5 cm y B=5 cm. ¿Cuánto mide AB?",
+        "answer": 3.5,
+        "feedback": "5−1,5=3,5 cm.",
+        "id": "q3"
+      },
+      {
+        "kind": "construction",
+        "prompt": "Traza un segmento vertical desde P(2,1) hasta un punto de la recta y=7.",
+        "construction": "vertical",
+        "feedback": "Mantén x=2; el punto final debe estar en y=7.",
+        "id": "q4"
+      },
+      {
+        "kind": "number",
+        "prompt": "A(2,3) y B(8,3). ¿Cuál es la longitud horizontal de AB?",
+        "answer": 6,
+        "feedback": "Ambos tienen la misma altura; |8−2|=6.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Traza con regla un segmento de 4 cm. Señala extremos, longitud y unidad; explica por qué una recta no tiene esa longitud finita.",
+        "rubric": "Debe existir trazo medido, extremos etiquetados y 4 cm; distinguir segmento de recta. Verificación del trazo en clase.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathgeometry-actividad-2",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Mueve los extremos del segmento. ¿Qué cambia en la longitud y dónde queda su punto medio?",
+    "nativeCount": 1,
+    "totalCount": 7
+  },
+  "mathgeometry-actividad-3": {
+    "model": "angulos",
+    "questions": [
+      {
+        "kind": "construction",
+        "prompt": "Con vértice P(2,2) y un lado horizontal hacia la derecha, construye un ángulo de 45°.",
+        "construction": "bisector",
+        "feedback": "Un punto en la dirección x−2=y−2>0 forma 45° con la horizontal.",
+        "id": "q5"
+      },
+      {
+        "kind": "open",
+        "prompt": "Traza y mide con transportador un ángulo agudo, uno recto y uno obtuso. Explica por qué al girar el papel su clasificación se conserva.",
+        "rubric": "Tres trazos y medidas congruentes con su clasificación; argumento basado en apertura, no orientación.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathgeometry-actividad-3",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Cambia la apertura y luego la longitud del lado: ¿qué determina si el ángulo es agudo, recto u obtuso?",
+    "nativeCount": 6,
+    "totalCount": 8
+  },
+  "mathgeometry-actividad-4": {
+    "model": "cruces",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "Dos ángulos opuestos por el vértice miden 3x y 60°. ¿Cuánto vale x?",
+        "answer": 20,
+        "feedback": "3x=60; x=20.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Dibuja dos rectas que se cruzan y marca un ángulo de 70°. Calcula los otros tres y justifica cada relación.",
+        "rubric": "Medidas 70°,110°,70°,110°; opuestos iguales y pares adyacentes suplementarios; vincular etiquetas del dibujo.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathgeometry-actividad-4",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Predice los otros ángulos del cruce antes de cambiar la apertura. ¿Qué pares son iguales y cuáles suman 180°?",
+    "nativeCount": 6,
+    "totalCount": 8
+  },
+  "mathgeometry-actividad-5": {
+    "model": "mediatriz",
+    "questions": [
+      {
+        "kind": "construction",
+        "prompt": "Coloca el punto medio de A(0,0) y B(8,4).",
+        "construction": "midpoint",
+        "feedback": "Promedia coordenadas: ((0+8)/2,(0+4)/2)=(4,2).",
+        "id": "q2"
+      },
+      {
+        "kind": "construction",
+        "prompt": "A(2,5) y B(8,5). Construye su mediatriz con un segmento que atraviese y=5.",
+        "construction": "mediatrix",
+        "feedback": "Debe ser vertical x=5 y atravesar el punto medio.",
+        "id": "q3"
+      },
+      {
+        "kind": "open",
+        "prompt": "Construye en papel la mediatriz de un segmento con regla y compás. Describe los arcos usados y comprueba perpendicularidad e igualdad de distancias.",
+        "rubric": "Arcos de igual radio desde ambos extremos, unión de intersecciones; marcar punto medio, 90° y comprobar distancias.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathgeometry-actividad-5",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Coloca P en x=5 y después fuera de esa recta. ¿Qué muestran las distancias a A y B y los arcos de construcción?",
+    "nativeCount": 6,
+    "totalCount": 9
+  },
+  "mathgeometry-actividad-6": {
+    "model": "angulos",
+    "questions": [
+      {
+        "kind": "construction",
+        "prompt": "Construye la bisectriz del ángulo recto en P(2,2), con lados hacia arriba y derecha.",
+        "construction": "bisector",
+        "feedback": "La dirección de 45° tiene incrementos horizontales y verticales iguales.",
+        "id": "q4"
+      },
+      {
+        "kind": "open",
+        "prompt": "Traza un ángulo no recto y construye su bisectriz con regla y compás. Explica cómo compruebas que las dos aperturas son iguales.",
+        "rubric": "Mostrar arcos de construcción desde el vértice y sus cortes; medir ambas partes; describir igualdad de ángulos.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathgeometry-actividad-6",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Cambia el ángulo: ¿cómo verificas que la línea punteada lo divide en dos partes iguales?",
+    "nativeCount": 6,
+    "totalCount": 8
+  },
+  "mathgeometry-actividad-7": {
+    "model": "triangulo",
+    "questions": [
+      {
+        "kind": "construction",
+        "prompt": "Triángulo A(1,1), B(9,1), C(5,8). Marca el extremo de la mediana desde C sobre AB.",
+        "construction": "median",
+        "feedback": "El extremo es el punto medio de AB: (5,1).",
+        "id": "q4"
+      },
+      {
+        "kind": "construction",
+        "prompt": "Triángulo A(1,1), B(9,1), C(3,7). Marca el pie de la altura desde C sobre AB.",
+        "construction": "altitude",
+        "feedback": "AB es horizontal: su perpendicular desde C llega a (3,1).",
+        "id": "q5"
+      },
+      {
+        "kind": "open",
+        "prompt": "Dibuja un triángulo escaleno y traza desde el mismo vértice una altura, una mediana y una bisectriz. Explica por qué no son la misma definición.",
+        "rubric": "Altura perpendicular, mediana al punto medio y bisectriz de ángulo; construcción y etiquetas; no usar la palabra centro sin precisar.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathgeometry-actividad-7",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Mueve el vértice del triángulo. ¿Por qué mediana, altura y bisectriz a veces coinciden y otras veces no?",
+    "nativeCount": 6,
+    "totalCount": 9
+  },
+  "mathgeometry-actividad-8": {
+    "model": "diagonales",
+    "questions": [
+      {
+        "kind": "construction",
+        "prompt": "Rectángulo con vértices (1,1),(9,1),(9,7),(1,7). Traza desde (1,1) una diagonal.",
+        "construction": "diagonal",
+        "feedback": "El vértice opuesto es (9,7), no uno consecutivo.",
+        "id": "q5"
+      },
+      {
+        "kind": "open",
+        "prompt": "Traza las dos diagonales de un rectángulo y de un cuadrado. Comprueba sus longitudes, su punto de cruce y sus ángulos. ¿Qué comparten y qué cambia?",
+        "rubric": "Iguales y se bisecan en ambos; perpendicularidad en cuadrado; evitar afirmar que todo rectángulo tiene diagonales perpendiculares.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathgeometry-actividad-8",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Compara un rectángulo no cuadrado y un cuadrado. ¿Qué propiedades de sus diagonales comparten y cuáles cambian?",
+    "nativeCount": 6,
+    "totalCount": 8
+  },
+  "mathdata-generador-energia": {
+    "model": "inversa",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "Para xy=60 y x=5, calcula y.",
+        "answer": 12,
+        "feedback": "y=60/5=12.",
+        "id": "q2"
+      },
+      {
+        "kind": "choice",
+        "prompt": "Si x se triplica en una relación inversa, y…",
+        "answer": "se divide entre 3",
+        "options": [
+          "se divide entre 3",
+          "se mantiene igual",
+          "se triplica"
+        ],
+        "feedback": "El producto xy debe conservarse.",
+        "id": "q4"
+      },
+      {
+        "kind": "choice",
+        "prompt": "¿Qué tabla es de proporcionalidad inversa?",
+        "answer": "(2,12),(3,8),(6,4)",
+        "options": [
+          "(2,4),(3,6),(6,12)",
+          "(2,12),(3,8),(6,4)",
+          "(2,12),(3,10),(6,4)"
+        ],
+        "feedback": "En la primera, todos los productos valen 24.",
+        "id": "q5"
+      },
+      {
+        "kind": "choice",
+        "prompt": "En y=24/x, x puede ser 0…",
+        "answer": "No",
+        "options": [
+          "No",
+          "Solo si y=0",
+          "Sí"
+        ],
+        "feedback": "La división entre cero no está definida.",
+        "id": "q7"
+      },
+      {
+        "kind": "open",
+        "prompt": "Una tabla muestra que y disminuye cuando x aumenta. Explica por qué eso no basta para afirmar proporcionalidad inversa; da un contraejemplo.",
+        "rubric": "Comprobar producto constante; por ejemplo y=10−x disminuye pero xy varía; indicar condiciones del modelo ideal de equipos.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q8"
+      }
+    ],
+    "id": "mathdata-generador-energia",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Duplica los equipos y compara el tiempo. ¿Qué producto se conserva y qué condiciones supone el modelo?",
+    "nativeCount": 3,
+    "totalCount": 8
+  },
+  "mathdata-encuesta-tripulacion": {
+    "model": "encuesta",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "¿Qué porcentaje de esas respuestas corresponde a A?",
+        "answer": 50,
+        "feedback": "4/8×100=50%.",
+        "id": "q3"
+      },
+      {
+        "kind": "choice",
+        "prompt": "¿Qué pregunta permite estudiar el transporte al llegar a la escuela?",
+        "answer": "¿Qué medio usaste hoy para llegar?",
+        "options": [
+          "¿No prefieres siempre el autobús?",
+          "¿Qué medio usaste hoy para llegar?",
+          "¿Por qué todos llegan en auto?"
+        ],
+        "feedback": "La pregunta permite categorías sin imponer una respuesta.",
+        "id": "q4"
+      },
+      {
+        "kind": "choice",
+        "prompt": "Para una tabla de transporte, las categorías deben…",
+        "answer": "evitar contar dos veces una misma respuesta",
+        "options": [
+          "evitar contar dos veces una misma respuesta",
+          "excluir caminar",
+          "superponerse siempre"
+        ],
+        "feedback": "Definir una respuesta por alumno o reglas explícitas para viajes combinados.",
+        "id": "q5"
+      },
+      {
+        "kind": "open",
+        "prompt": "Diseña una pregunta neutral sobre una necesidad del grupo, define categorías y recoge al menos 10 respuestas. Escribe la tabla y una conclusión con un límite de la muestra.",
+        "rubric": "Pregunta neutral; categorías claras; frecuencias suman total; conclusión sustentada; no generalizar a toda la escuela desde un solo grupo.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathdata-encuesta-tripulacion",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Cambia las cantidades de dos categorías. ¿Cómo se actualizan la tabla y las barras sin contar dos veces una respuesta?",
+    "nativeCount": 3,
+    "totalCount": 7
+  },
+  "mathdata-holograma-reportes": {
+    "model": "graficas",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "¿Qué porcentaje representan 8 de 20?",
+        "answer": 40,
+        "feedback": "8/20×100=40%.",
+        "id": "q2"
+      },
+      {
+        "kind": "number",
+        "prompt": "¿Qué ángulo central representa esa categoría en un gráfico circular?",
+        "answer": 144,
+        "feedback": "0,4×360=144°.",
+        "id": "q3"
+      },
+      {
+        "kind": "choice",
+        "prompt": "Una gráfica de barras recorta el eje vertical y no lo advierte. Puede…",
+        "answer": "exagerar diferencias visuales",
+        "options": [
+          "demostrar siempre igualdad",
+          "exagerar diferencias visuales",
+          "cambiar las frecuencias reales"
+        ],
+        "feedback": "La representación puede exagerar diferencias aunque los datos no cambien.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Con la tabla 8,6,4,2 construye una gráfica con título, categorías y escala. Justifica si elegiste barras o sectores y escribe una conclusión verificable.",
+        "rubric": "Barras proporcionales con escala y origen claro o sectores de 144°,108°,72°,36°; título, categorías, total y conclusión; no inferir causas solo por frecuencias.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q8"
+      }
+    ],
+    "id": "mathdata-holograma-reportes",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Observa los mismos datos en barras y sectores. ¿Cómo se conserva la proporción al cambiar una frecuencia?",
+    "nativeCount": 4,
+    "totalCount": 8
+  },
+  "mathdata-sensor-frecuencias": {
+    "model": "frecuencias",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "¿Cuál es la frecuencia relativa de una categoría con 9 de esas 30 señales?",
+        "answer": 0.3,
+        "feedback": "9/30=0,3.",
+        "id": "q5"
+      },
+      {
+        "kind": "number",
+        "prompt": "¿Cuánto deben sumar todas las frecuencias relativas de categorías exhaustivas y sin superposición?",
+        "answer": 1,
+        "feedback": "El total relativo es 1, equivalente a 100%.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Explica qué representa el denominador en 12/30 y qué error se cometería si se usara 12/18.",
+        "rubric": "30 es el total de señales;18 son las restantes, no el total; diferenciar proporción del total y razón entre grupos.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q7"
+      }
+    ],
+    "id": "mathdata-sensor-frecuencias",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Cambia el número de señales. ¿Por qué la frecuencia absoluta y la relativa pueden cambiar de maneras distintas?",
+    "nativeCount": 4,
+    "totalCount": 7
+  },
+  "mathdata-nucleo-decisiones": {
+    "model": "estadistica",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "Datos:2,4,6,8. Calcula la mediana.",
+        "answer": 5,
+        "feedback": "Promedia los dos centrales: (4+6)/2=5.",
+        "id": "q5"
+      },
+      {
+        "kind": "number",
+        "prompt": "Datos:10,10,10,10,60. Calcula la media.",
+        "answer": 20,
+        "feedback": "100/5=20.",
+        "id": "q6"
+      },
+      {
+        "kind": "choice",
+        "prompt": "Para describir un tiempo típico en 10,10,10,10,60, la medida menos afectada por el valor extremo es…",
+        "answer": "la mediana",
+        "options": [
+          "la mediana",
+          "el máximo",
+          "la media"
+        ],
+        "feedback": "La mediana permanece10; la media sube a20.",
+        "id": "q8"
+      },
+      {
+        "kind": "open",
+        "prompt": "Compara media y mediana para 10,10,10,10,60. Elige una para describir el tiempo típico y justifica sin esconder el valor extremo.",
+        "rubric": "Calcular20 y10; fundamentar la elección, informar el extremo60 y el rango50; unidades y contexto; ninguna medida basta sin describir datos.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q9"
+      }
+    ],
+    "id": "mathdata-nucleo-decisiones",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Aumenta mucho el último dato. ¿Qué cambia en la media, mediana, moda y rango, y qué significa para describir el conjunto?",
+    "nativeCount": 5,
+    "totalCount": 9
+  },
+  "mathdata-oraculo-estacion": {
+    "model": "azar",
+    "questions": [
+      {
+        "kind": "choice",
+        "prompt": "Dos lanzamientos seguidos salieron 6. En un nuevo lanzamiento de un dado equilibrado, el 6…",
+        "answer": "sigue siendo tan probable como cada otra cara",
+        "options": [
+          "ya no puede salir",
+          "es seguro",
+          "sigue siendo tan probable como cada otra cara"
+        ],
+        "feedback": "Los lanzamientos no obligan a compensar resultados previos.",
+        "id": "q6"
+      },
+      {
+        "kind": "number",
+        "prompt": "Lanzas dos monedas distintas y registras en orden primera y segunda. ¿Cuántos pares posibles de cara/cruz hay?",
+        "answer": 4,
+        "feedback": "Son (cara,cara), (cara,cruz), (cruz,cara), (cruz,cruz). El orden identifica cuál moneda dio cada resultado.",
+        "id": "q7"
+      },
+      {
+        "kind": "open",
+        "prompt": "Realiza 10 lanzamientos de moneda y registra sus resultados. Compara cara y cruz: ¿una frecuencia mayor prueba que el próximo resultado será ese?",
+        "rubric": "Registrar10 resultados; comparar frecuencias; no confundir resultado observado con certeza futura; reconocer variabilidad y muestra pequeña.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q8"
+      }
+    ],
+    "id": "mathdata-oraculo-estacion",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Compara dos composiciones de la bolsa y realiza varias extracciones. ¿Más probable significa seguro?",
+    "nativeCount": 5,
+    "totalCount": 8
+  },
+  "mathdata-sala-tres-caminos": {
+    "model": "eventos",
+    "questions": [
+      {
+        "kind": "choice",
+        "prompt": "En un dado, obtener un número par y obtener 2…",
+        "answer": "pueden ocurrir juntos",
+        "options": [
+          "son siempre excluyentes",
+          "pueden ocurrir juntos",
+          "son complementarios"
+        ],
+        "feedback": "El resultado2 satisface ambos eventos.",
+        "id": "q2"
+      },
+      {
+        "kind": "number",
+        "prompt": "En un dado equilibrado, P(par)=1/2 y P(impar)=1/2. Calcula P(par o impar).",
+        "answer": 1,
+        "feedback": "Son excluyentes y exhaustivos:1/2+1/2=1.",
+        "id": "q5"
+      },
+      {
+        "kind": "number",
+        "prompt": "Dos monedas equilibradas se lanzan independientemente. Calcula P(dos caras).",
+        "answer": 0.25,
+        "feedback": "1/2×1/2=1/4.",
+        "id": "q6"
+      },
+      {
+        "kind": "open",
+        "prompt": "Compara extraer dos fichas con devolución y sin devolución. Define los eventos y explica cuándo puedes multiplicar sus probabilidades sin modificarlas.",
+        "rubric": "Especificar bolsa y eventos; con devolución son independientes en el modelo, sin ella probabilidades condicionales; distinguir independencia de exclusión.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q8"
+      }
+    ],
+    "id": "mathdata-sala-tres-caminos",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Compara dos extracciones con devolución y sin ella. ¿Cuándo cambia la probabilidad de la segunda extracción?",
+    "nativeCount": 5,
+    "totalCount": 9
+  },
+  "mathdata-rampas-lanzamiento": {
+    "model": "funciones",
+    "questions": [
+      {
+        "kind": "number",
+        "prompt": "La rampa sube 4 m por cada metro horizontal. ¿Cuál es k en y=kx?",
+        "answer": 4,
+        "feedback": "k=4.",
+        "id": "q1"
+      },
+      {
+        "kind": "number",
+        "prompt": "La rampa baja 3 m por cada metro horizontal. ¿Cuál es k?",
+        "answer": -3,
+        "feedback": "El descenso corresponde a k negativa: −3.",
+        "id": "q2"
+      },
+      {
+        "kind": "number",
+        "prompt": "Para y=4x y x=2, calcula y.",
+        "answer": 8,
+        "feedback": "4×2=8.",
+        "id": "q3"
+      },
+      {
+        "kind": "number",
+        "prompt": "Para y=−3x y x=2, calcula y.",
+        "answer": -6,
+        "feedback": "−3×2=−6.",
+        "id": "q4"
+      },
+      {
+        "kind": "algebra",
+        "prompt": "Una recta pasa por (0,0) y (2,10). Escribe y como expresión en x.",
+        "answer": [
+          5,
+          0
+        ],
+        "feedback": "k=10/2=5; y=5x.",
+        "variable": "x",
+        "id": "q5"
+      },
+      {
+        "kind": "algebra",
+        "prompt": "Cada boleto cuesta $15. Escribe el costo de x boletos, sin cargo inicial.",
+        "answer": [
+          15,
+          0
+        ],
+        "feedback": "Costo=15x.",
+        "variable": "x",
+        "id": "q8"
+      },
+      {
+        "kind": "open",
+        "prompt": "Explica con una tabla y una gráfica por qué y=2x+3 no es proporcional, aunque sea una recta.",
+        "rubric": "No pasa por el origen; valores de y/x distintos para x≠0; distinguir relación lineal afín de proporcional.",
+        "feedback": "Tu explicación requiere revisión docente; no se cuenta como un acierto automático.",
+        "id": "q9"
+      }
+    ],
+    "id": "mathdata-rampas-lanzamiento",
+    "version": "refuerzo-v1",
+    "explorationQuestion": "Prueba constantes positivas y negativas con b=0; después cambia b. Relaciona la tabla, el origen y la ecuación.",
+    "nativeCount": 2,
+    "totalCount": 9
+  }
+}
