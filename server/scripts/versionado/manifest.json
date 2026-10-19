@@ -1,0 +1,10 @@
+{
+  "formato": "mathnova-migraciones-v1",
+  "migraciones": [
+    {
+      "id": "0001_linea_base",
+      "archivo": "0001_linea_base.sql",
+      "sha256": "7b23199d82a15ef7093ab0419ae3d8d5ea1c5fe0210bccceaeba022eb2edf972"
+    }
+  ]
+}
